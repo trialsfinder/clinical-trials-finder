@@ -228,6 +228,15 @@
       Search
     </button>
   </div>
+  <div class="search-row" style="margin-top:7px">
+    <div class="search-wrap">
+      <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      <input id="sKeyword" class="s-input" type="text" placeholder="Site or investigator — optional (e.g. UC Irvine, Dr. Smith)"
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        style="font-size:12px;color:var(--gray-2)"
+        onkeydown="if(event.key==='Enter'){doSearch();this.blur()}"/>
+    </div>
+  </div>
 </div>
 
 <div class="filter-row" id="filterRow" style="display:none">
@@ -431,11 +440,12 @@ function parseEligibility(raw) {
 async function doSearch() {
   const cond=document.getElementById('sInput').value.trim();
   if(!cond)return;
+  const keyword=(document.getElementById('sKeyword')?.value||'').trim();
   document.getElementById('sugg').style.display='none';
 
   // Track search event in Google Analytics
   if(typeof gtag!=='undefined'){
-    gtag('event','search',{search_term:cond});
+    gtag('event','search',{search_term:cond+(keyword?` | site/PI: ${keyword}`:'')});
   }
 
   showOv('load');
@@ -455,6 +465,7 @@ async function doSearch() {
 
     do {
       let url=`https://clinicaltrials.gov/api/v2/studies?query.cond=${encodeURIComponent(cond)}&filter.overallStatus=RECRUITING,ACTIVE_NOT_RECRUITING,ENROLLING_BY_INVITATION&pageSize=200&format=json`;
+      if(keyword)url+=`&query.term=${encodeURIComponent(keyword)}`;
       if(nextToken)url+=`&pageToken=${nextToken}`;
 
       const res=await fetch(url);
