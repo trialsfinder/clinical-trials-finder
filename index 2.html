@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ClinicalTrials Finder</title>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4L5428QVVM"></script>
+<script>
+  window.dataLayer=window.dataLayer||[];
+  function gtag(){dataLayer.push(arguments)}
+  gtag('js',new Date());
+  gtag('config','G-4L5428QVVM');
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --navy:#0D1B2A; --navy-mid:#1A2E45; --navy-light:#243B55;
+    --amber:#F5A623; --amber-dim:#C87D0E;
+    --teal:#2EC4B6; --white:#F7F9FC;
+    --gray-1:#E8EDF3; --gray-2:#B0BEC5; --gray-3:#607080;
+    --danger:#E05252; --success:#34C98A;
+    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --r:12px; --rs:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:var(--font);background:var(--navy);color:var(--white);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+  /* HEADER */
+  .header{background:var(--navy);padding:14px 16px 10px;z-index:1000;border-bottom:1px solid rgba(255,255,255,.06)}
+  .header-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .logo{width:34px;height:34px;background:var(--amber);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .brand-name{font-size:15px;font-weight:700;letter-spacing:-.3px}
+  .brand-sub{font-size:11px;color:var(--gray-2);margin-top:1px}
+  .loc-btn{width:34px;height:34px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+  .search-row{display:flex;gap:8px}
+  .search-wrap{flex:1;position:relative}
+  .s-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gray-2);pointer-events:none}
+  .s-input{width:100%;height:42px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:var(--rs);color:var(--white);font-size:14px;padding:0 12px 0 36px;outline:none;-webkit-appearance:none;transition:border-color .15s}
+  .s-input::placeholder{color:var(--gray-3)}
+  .s-input:focus{border-color:var(--amber)}
+  .s-btn{height:42px;padding:0 16px;background:var(--amber);color:var(--navy);border:none;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s,transform .1s;display:flex;align-items:center;gap:6px}
+  .s-btn:active{background:var(--amber-dim);transform:scale(.97)}
+  .s-btn:disabled{background:var(--gray-3);cursor:not-allowed;transform:none}
+
+  /* FILTERS */
+  .filter-row{display:flex;gap:8px;align-items:center;padding:10px 16px 0;overflow-x:auto;scrollbar-width:none}
+  .filter-row::-webkit-scrollbar{display:none}
+  .fl{font-size:11px;color:var(--gray-2);white-space:nowrap}
+  .d-sel{background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:20px;color:var(--white);font-size:12px;padding:5px 10px;outline:none;cursor:pointer;-webkit-appearance:none}
+  .chip{padding:5px 12px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:12px;color:var(--gray-2);cursor:pointer;white-space:nowrap;transition:all .15s}
+  .chip.active{background:rgba(245,166,35,.15);border-color:var(--amber);color:var(--amber)}
+  .res-count{margin-left:auto;font-size:12px;color:var(--teal);white-space:nowrap;font-weight:600}
+
+  /* MAP */
+  .map-wrap{flex:1;position:relative;display:flex;flex-direction:column}
+  #map{flex:1;width:100%;z-index:1}
+
+  /* OVERLAYS */
+  .overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;background:var(--navy);border-radius:var(--r);padding:28px 32px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.4);min-width:240px;pointer-events:none;opacity:0;transition:opacity .2s;border:1px solid rgba(255,255,255,.08)}
+  .overlay.on{opacity:1;pointer-events:all}
+  .ov-icon{font-size:38px;margin-bottom:12px}
+  .ov-title{font-size:16px;font-weight:700;margin-bottom:6px}
+  .ov-msg{font-size:13px;color:var(--gray-2);line-height:1.5}
+  .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--amber);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* RESULTS PANEL */
+  .panel{position:absolute;bottom:0;left:0;right:0;z-index:900;background:var(--navy);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -8px 32px rgba(0,0,0,.4);transition:height .3s cubic-bezier(.4,0,.2,1);height:0;overflow:hidden;display:flex;flex-direction:column}
+  .panel.peek{height:90px}
+  .panel.half{height:55vh}
+  .panel.full{height:90vh}
+  .handle-area{padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;cursor:pointer;flex-shrink:0}
+  .handle{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin-bottom:10px}
+  .panel-title-row{display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px;flex-shrink:0}
+  .panel-title{font-size:15px;font-weight:700}
+  .panel-sub{font-size:12px;color:var(--gray-2);margin-top:2px}
+  .sort-btn{font-size:12px;color:var(--amber);background:rgba(245,166,35,.1);border:none;border-radius:6px;padding:4px 8px;cursor:pointer}
+  .results-list{overflow-y:auto;flex:1;padding:0 12px 32px}
+
+  /* TRIAL CARD */
+  .card{background:var(--navy-mid);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,transform .1s;position:relative;overflow:hidden}
+  .card:active{transform:scale(.99)}
+  .card.hl{border-color:var(--amber)}
+  .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal);border-radius:3px 0 0 3px}
+  .card.p3::before{background:var(--amber)}
+  .card.p1::before{background:var(--gray-2)}
+  .card.p4::before{background:var(--success)}
+  .card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+  .pbadge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+  .pbadge.b1{background:rgba(176,190,197,.15);color:var(--gray-2)}
+  .pbadge.b2{background:rgba(46,196,182,.15);color:var(--teal)}
+  .pbadge.b3{background:rgba(245,166,35,.15);color:var(--amber)}
+  .pbadge.b4{background:rgba(52,201,138,.15);color:var(--success)}
+  .pbadge.bna{background:rgba(176,190,197,.1);color:var(--gray-3)}
+  .card-title{font-size:13px;font-weight:600;line-height:1.4;color:var(--white);flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card-org{font-size:12px;color:var(--gray-2);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+  .card-loc{font-size:12px;color:var(--teal);display:flex;align-items:center;gap:5px;margin-bottom:8px}
+  .card-foot{display:flex;align-items:center;justify-content:space-between}
+  .dist-tag{font-size:12px;font-weight:700;color:var(--amber)}
+  .view-btn{font-size:12px;font-weight:600;color:var(--navy);background:var(--amber);border:none;border-radius:8px;padding:6px 14px;cursor:pointer}
+
+  /* DETAIL SHEET */
+  .detail{position:absolute;bottom:0;left:0;right:0;z-index:950;background:var(--navy);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:92vh;overflow-y:auto}
+  .detail.open{transform:translateY(0)}
+  .d-header{position:sticky;top:0;background:var(--navy);padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;z-index:10}
+  .d-close{width:32px;height:32px;background:rgba(255,255,255,.08);border:none;border-radius:50%;color:var(--white);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .d-body{padding:16px}
+  .d-title{font-size:16px;font-weight:700;line-height:1.4;margin-bottom:16px}
+  .d-sec{margin-bottom:18px}
+  .d-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-2);margin-bottom:8px}
+  .d-val{font-size:13px;color:var(--white);line-height:1.7}
+
+  /* ELIGIBILITY */
+  .elig-block{background:var(--navy-mid);border-radius:var(--rs);padding:12px 14px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px}
+  .elig-head{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .elig-head.inc{color:var(--success)}
+  .elig-head.exc{color:var(--danger)}
+  .elig-item{font-size:12px;color:var(--gray-2);line-height:1.6;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:8px}
+  .elig-item:last-child{border-bottom:none}
+  .elig-dot{flex-shrink:0;margin-top:5px;width:5px;height:5px;border-radius:50%}
+  .elig-dot.i{background:var(--success)}
+  .elig-dot.e{background:var(--danger)}
+
+  /* CONTACTS */
+  .contact-card{background:var(--navy-mid);border-radius:var(--rs);padding:12px 14px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px}
+  .contact-name{font-size:13px;font-weight:600;margin-bottom:6px}
+  .contact-role{font-size:11px;color:var(--gray-3);margin-bottom:8px}
+  .contact-links{display:flex;flex-direction:column;gap:8px}
+  .contact-btn{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--rs);text-decoration:none;font-size:13px;font-weight:600;border:none;cursor:pointer;width:100%;text-align:left}
+  .contact-btn.phone{background:rgba(52,201,138,.12);color:var(--success);border:1px solid rgba(52,201,138,.25)}
+  .contact-btn.email{background:rgba(46,196,182,.12);color:var(--teal);border:1px solid rgba(46,196,182,.25)}
+  .contact-btn-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .contact-btn.phone .contact-btn-icon{background:rgba(52,201,138,.2)}
+  .contact-btn.email .contact-btn-icon{background:rgba(46,196,182,.2)}
+  .contact-btn-text{flex:1}
+  .contact-btn-label{font-size:10px;font-weight:400;opacity:.7;display:block;margin-bottom:1px}
+  .contact-btn-value{font-size:13px;font-weight:600}
+
+  /* LOCATION LIST */
+  .loc-item{background:var(--navy-mid);border-radius:var(--rs);padding:10px 12px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px}
+  .loc-name{font-size:13px;font-weight:600;margin-bottom:3px}
+  .loc-city{font-size:12px;color:var(--gray-2)}
+  .loc-status{font-size:11px;color:var(--success);margin-top:4px}
+  .loc-dist{font-size:12px;color:var(--amber);font-weight:700;margin-top:4px}
+
+  /* CONDITION CHIPS */
+  .cond-wrap{display:flex;flex-wrap:wrap;gap:6px}
+  .cond-chip{font-size:12px;padding:4px 10px;background:rgba(46,196,182,.12);color:var(--teal);border-radius:20px}
+
+  /* META PILLS */
+  .meta-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .meta-pill{font-size:11px;color:var(--gray-2);background:rgba(255,255,255,.05);padding:3px 10px;border-radius:6px;display:flex;align-items:center;gap:5px}
+
+  /* CTA */
+  .d-cta{display:block;background:var(--amber);color:var(--navy);text-align:center;font-size:14px;font-weight:700;padding:14px;border-radius:var(--r);text-decoration:none;margin-top:20px}
+  .d-disclaimer{text-align:center;font-size:11px;color:var(--gray-3);margin-top:12px;line-height:1.6}
+  .nct-id{font-size:11px;color:var(--gray-3);font-family:monospace;margin-bottom:10px}
+
+  /* SUGGESTIONS */
+  .sugg{position:absolute;top:42px;left:0;right:0;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-top:none;border-radius:0 0 var(--rs) var(--rs);z-index:2000;overflow:hidden;display:none}
+  .sugg-item{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:8px}
+  .sugg-item:last-child{border-bottom:none}
+  .sugg-dot{width:6px;height:6px;background:var(--amber);border-radius:50%;flex-shrink:0}
+
+  /* DISCLAIMER MODAL */
+  .disc-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;padding:0}
+  .disc-backdrop.hidden{display:none}
+  .disc-sheet{background:var(--navy);border-radius:24px 24px 0 0;padding:28px 20px 40px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;border-top:1px solid rgba(255,255,255,.1)}
+  .disc-icon{width:56px;height:56px;background:rgba(245,166,35,.15);border:2px solid rgba(245,166,35,.3);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+  .disc-title{font-size:18px;font-weight:700;text-align:center;margin-bottom:6px}
+  .disc-version{font-size:11px;color:var(--gray-3);text-align:center;margin-bottom:20px}
+  .disc-section{margin-bottom:16px}
+  .disc-section-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+  .disc-text{font-size:13px;color:var(--gray-2);line-height:1.7}
+  .disc-divider{height:1px;background:rgba(255,255,255,.07);margin:16px 0}
+  .disc-agree{width:100%;background:var(--amber);color:var(--navy);border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
+  .disc-remind{display:block;text-align:center;font-size:12px;color:var(--gray-3);margin-top:12px;cursor:pointer;background:none;border:none;width:100%}
+  /* INFO BUTTON */
+  .info-btn{width:34px;height:34px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;font-weight:700;color:var(--gray-2)}
+
+  /* LEAFLET */
+  .leaflet-container{background:#162030!important}
+  .leaflet-tile{filter:brightness(.82) saturate(.65) hue-rotate(200deg)}
+  .leaflet-control-zoom{border:1px solid rgba(255,255,255,.1)!important;border-radius:10px!important;overflow:hidden}
+  .leaflet-control-zoom a{background:var(--navy-mid)!important;color:var(--white)!important;border-color:rgba(255,255,255,.1)!important}
+  .leaflet-control-attribution{background:rgba(13,27,42,.8)!important;color:var(--gray-3)!important;font-size:9px!important}
+  .leaflet-control-attribution a{color:var(--gray-3)!important}
+  .leaflet-popup-content-wrapper{background:var(--navy-mid)!important;color:var(--white)!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:12px!important;box-shadow:0 4px 24px rgba(0,0,0,.4)!important}
+  .leaflet-popup-tip{background:var(--navy-mid)!important}
+  .leaflet-popup-content{margin:10px 14px!important;font-family:var(--font)!important}
+  .popup-title{font-size:13px;font-weight:600;margin-bottom:4px;line-height:1.4}
+  .popup-phase{font-size:11px;color:var(--amber);margin-bottom:4px}
+  .popup-loc{font-size:12px;color:var(--gray-2);margin-bottom:8px}
+  .popup-btn{display:block;width:100%;background:var(--amber);color:var(--navy);border:none;border-radius:8px;padding:7px;font-size:12px;font-weight:700;cursor:pointer;text-align:center}
+
+  @keyframes pulse-ring{0%{transform:scale(.8);opacity:.8}100%{transform:scale(2.4);opacity:0}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D1B2A" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a7 7 0 0 1 7 7c0 4-7 13-7 13S5 13 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5" fill="#0D1B2A"/></svg>
+    </div>
+    <div class="brand">
+      <div class="brand-name">ClinicalTrials Finder</div>
+      <div class="brand-sub">Active recruiting studies · ClinicalTrials.gov</div>
+    </div>
+    <button class="loc-btn" onclick="getUserLocation()" title="Use my location">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+    </button>
+    <button class="info-btn" onclick="showDisclaimer(true)" title="Medical Disclaimer">ⓘ</button>
+  </div>
+  <div class="search-row">
+    <div class="search-wrap">
+      <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="sInput" class="s-input" type="text" placeholder="e.g. Parkinson disease, diabetes, lupus…"
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter'){doSearch();this.blur()}"
+        oninput="onInput(this.value)"/>
+      <div class="sugg" id="sugg"></div>
+    </div>
+    <button class="s-btn" id="sBtn" onclick="doSearch()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Search
+    </button>
+  </div>
+</div>
+
+<div class="filter-row" id="filterRow" style="display:none">
+  <span class="fl">Distance</span>
+  <select class="d-sel" id="distSel" onchange="applyFilters()">
+    <option value="5" selected>5 mi</option>
+    <option value="10">10 mi</option>
+    <option value="25">25 mi</option>
+    <option value="50">50 mi</option>
+    <option value="100">100 mi</option>
+    <option value="250">250 mi</option>
+    <option value="500">500 mi</option>
+    <option value="99999">Nationwide</option>
+  </select>
+  <button class="chip active" id="chip-all" onclick="setPhase('all')">All Phases</button>
+  <button class="chip" id="chip-1" onclick="setPhase('1')">Phase 1</button>
+  <button class="chip" id="chip-2" onclick="setPhase('2')">Phase 2</button>
+  <button class="chip" id="chip-3" onclick="setPhase('3')">Phase 3</button>
+  <span class="res-count" id="resCount"></span>
+</div>
+
+<div class="map-wrap">
+  <div id="map"></div>
+
+  <div class="overlay on" id="ovEmpty">
+    <div class="ov-icon">🔬</div>
+    <div class="ov-title">Find Active Clinical Trials</div>
+    <div class="ov-msg">Enter a condition above to find actively recruiting studies plotted on the map.</div>
+  </div>
+  <div class="overlay" id="ovLoad">
+    <div class="spinner"></div>
+    <div class="ov-title">Searching trials…</div>
+    <div class="ov-msg" id="loadMsg">Querying ClinicalTrials.gov</div>
+  </div>
+  <div class="overlay" id="ovNone">
+    <div class="ov-icon">📭</div>
+    <div class="ov-title">No Trials Found</div>
+    <div class="ov-msg" id="noneMsg">Try a broader condition or increase the distance range.</div>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div class="panel" id="panel">
+    <div class="handle-area" onclick="cyclePanel()"><div class="handle"></div></div>
+    <div class="panel-title-row">
+      <div>
+        <div class="panel-title" id="pTitle">Results</div>
+        <div class="panel-sub" id="pSub"></div>
+      </div>
+      <button class="sort-btn" onclick="toggleSort()">⇅ <span id="sortLbl">Nearest</span></button>
+    </div>
+    <div class="results-list" id="resList"></div>
+  </div>
+
+  <!-- DETAIL SHEET -->
+  <div class="detail" id="detail">
+    <div class="d-header">
+      <div style="font-size:14px;font-weight:700">Trial Details</div>
+      <button class="d-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="d-body" id="dBody"></div>
+  </div>
+</div>
+
+<!-- DISCLAIMER MODAL -->
+<div class="disc-backdrop hidden" id="discBackdrop">
+  <div class="disc-sheet">
+    <div class="disc-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+    </div>
+    <div class="disc-title">Medical Disclaimer</div>
+    <div class="disc-version">ClinicalTrials Finder · For Informational Use Only</div>
+
+    <div class="disc-section">
+      <div class="disc-section-title">Not Medical Advice</div>
+      <div class="disc-text">This app is provided for informational purposes only and does not constitute medical advice, diagnosis, or treatment. The information presented should never be used as a substitute for professional medical advice from a qualified healthcare provider.</div>
+    </div>
+
+    <div class="disc-divider"></div>
+
+    <div class="disc-section">
+      <div class="disc-section-title">Clinical Trial Information</div>
+      <div class="disc-text">Trial data is retrieved in real time from ClinicalTrials.gov, a registry maintained by the U.S. National Library of Medicine. Eligibility criteria shown in this app are summarized and may be incomplete. Always review the full trial listing and consult the study team directly before making any enrollment decisions.</div>
+    </div>
+
+    <div class="disc-divider"></div>
+
+    <div class="disc-section">
+      <div class="disc-section-title">Consult Your Physician</div>
+      <div class="disc-text">Participation in any clinical trial should only be considered after a thorough discussion with your treating physician or specialist. Your physician can help evaluate whether a specific trial is appropriate given your complete medical history, current medications, and overall health status.</div>
+    </div>
+
+    <div class="disc-divider"></div>
+
+    <div class="disc-section">
+      <div class="disc-section-title">No Liability</div>
+      <div class="disc-text">The developers of this application make no representations or warranties regarding the accuracy, completeness, or timeliness of the information provided. Use of this app is at your own discretion and risk. The developers are not liable for any decisions made based on information obtained through this app.</div>
+    </div>
+
+    <div class="disc-divider"></div>
+
+    <div class="disc-section">
+      <div class="disc-section-title">Privacy</div>
+      <div class="disc-text">This app does not collect, store, or transmit any personal health information. Location data, if shared, is used solely to calculate distances to trial sites and is never recorded or sent to any server.</div>
+    </div>
+
+    <button class="disc-agree" onclick="acceptDisclaimer()">I Understand — Continue to App</button>
+    <button class="disc-remind" onclick="closeDisclaimer()">Remind me later</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let map, markers, userMarker, userLL = null;
+let allTrials = [], filtered = [], phaseF = 'all', sortNearest = true;
+let panelSt = 0;
+const GEO_CACHE = {};
+const PRESET_MSG = (trialTitle, nctId) =>
+  `Dear Research Team,\n\nI am writing to express my interest in participating in the following clinical trial:\n\n"${trialTitle}" (${nctId})\n\nAfter reviewing the currently listed inclusion and exclusion criteria, I believe I may qualify for this study. I would appreciate the opportunity to learn more about the enrollment process and next steps.\n\nThank you for your time and consideration.\n\nSincerely,\n[Your Name]\n[Your Phone Number]`;
+
+const SUGGESTIONS = ["Parkinson disease","Alzheimer disease","Type 2 diabetes","Breast cancer","Lung cancer","Multiple sclerosis","Rheumatoid arthritis","Crohn disease","Heart failure","Hypertension","Depression","Anxiety disorder","Autism","Lupus","Asthma","HIV","Stroke","Prostate cancer","Melanoma","COPD","Kidney disease","Atrial fibrillation","Epilepsy","Osteoporosis","Schizophrenia","Ovarian cancer","Colorectal cancer","ALS","Fibromyalgia"];
+
+// ── MAP ──
+function initMap() {
+  map = L.map('map',{center:[39.5,-98.35],zoom:4,zoomControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',maxZoom:18
+  }).addTo(map);
+  markers = L.layerGroup().addTo(map);
+  map.on('click',()=>{closeDetail();if(panelSt===3)setPanel(2)});
+}
+
+function getUserLocation() {
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userLL=[pos.coords.latitude,pos.coords.longitude];
+    if(userMarker)map.removeLayer(userMarker);
+    const ic=L.divIcon({html:`<div style="width:14px;height:14px;background:#2EC4B6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(46,196,182,.25)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:''});
+    userMarker=L.marker(userLL,{icon:ic}).addTo(map).bindPopup('<div style="font-size:12px;color:#2EC4B6;font-weight:700">📍 Your Location</div>');
+    map.setView(userLL,9);
+  },()=>{
+    // Location denied or unavailable — app works fine without it, no alert needed
+  });
+}
+
+// ── SUGGESTIONS ──
+function onInput(v) {
+  const b=document.getElementById('sugg');
+  if(!v||v.length<2){b.style.display='none';return}
+  const m=SUGGESTIONS.filter(s=>s.toLowerCase().includes(v.toLowerCase())).slice(0,6);
+  if(!m.length){b.style.display='none';return}
+  b.innerHTML=m.map(s=>`<div class="sugg-item" onclick="pickSugg('${s}')"><div class="sugg-dot"></div>${s}</div>`).join('');
+  b.style.display='block';
+}
+function pickSugg(v){document.getElementById('sInput').value=v;document.getElementById('sugg').style.display='none';doSearch()}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('sugg').style.display='none'});
+
+// ── GEOCODE ──
+async function geocode(city,state) {
+  const key=`${city}|${state}`;
+  if(GEO_CACHE[key])return GEO_CACHE[key];
+  try{
+    // Try with zip first if available, then city+state
+    const q=encodeURIComponent(`${city}, ${state}, USA`);
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=us`,{headers:{'Accept-Language':'en','User-Agent':'ClinicalTrialsFinder/1.0'}});
+    const d=await r.json();
+    if(d&&d[0]){const c=[parseFloat(d[0].lat),parseFloat(d[0].lon)];GEO_CACHE[key]=c;return c}
+  }catch(e){}
+  return null;
+}
+
+// ── DISTANCE ──
+function haversine(a,b){
+  const R=3958.8,dLat=(b[0]-a[0])*Math.PI/180,dLon=(b[1]-a[1])*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+// ── PARSE ELIGIBILITY ──
+function parseEligibility(raw) {
+  if(!raw)return{inc:[],exc:[],raw:''};
+  // Split on common patterns: "Inclusion Criteria:" / "Exclusion Criteria:"
+  const incMatch=raw.match(/inclusion criteria[:\s]*([\s\S]*?)(?=exclusion criteria|$)/i);
+  const excMatch=raw.match(/exclusion criteria[:\s]*([\s\S]*?)$/i);
+
+  function splitCriteria(text){
+    if(!text)return[];
+    // Split on numbered items (1., 2., 1), •, -, *)
+    return text.split(/\n+/)
+      .map(l=>l.replace(/^[\d\-\*\•\·\–]+[\.\)]\s*/,'').trim())
+      .filter(l=>l.length>10&&!/^(inclusion|exclusion)/i.test(l))
+      .slice(0,12); // max 12 per section
+  }
+  return{
+    inc:splitCriteria(incMatch?incMatch[1]:''),
+    exc:splitCriteria(excMatch?excMatch[1]:''),
+    raw
+  };
+}
+
+// ── SEARCH ──
+async function doSearch() {
+  const cond=document.getElementById('sInput').value.trim();
+  if(!cond)return;
+  document.getElementById('sugg').style.display='none';
+
+  // Track search event in Google Analytics
+  if(typeof gtag!=='undefined'){
+    gtag('event','search',{search_term:cond});
+  }
+
+  showOv('load');
+  setPanel(0);
+  markers.clearLayers();
+  allTrials=[];filtered=[];
+
+  try{
+    // KEY FIX #1: Remove `fields=` parameter — it was silently dropping location data
+    // KEY FIX #2: Increase pageSize to 1000 (max) to capture all UC and other sites
+    // KEY FIX #3: Use pagination via nextPageToken to get all results
+    let allStudies=[];
+    let nextToken=null;
+    let page=0;
+
+    document.getElementById('loadMsg').textContent='Fetching trials from ClinicalTrials.gov…';
+
+    do {
+      let url=`https://clinicaltrials.gov/api/v2/studies?query.cond=${encodeURIComponent(cond)}&filter.overallStatus=RECRUITING,ACTIVE_NOT_RECRUITING,ENROLLING_BY_INVITATION&pageSize=200&format=json`;
+      if(nextToken)url+=`&pageToken=${nextToken}`;
+
+      const res=await fetch(url);
+      if(!res.ok)throw new Error(`API ${res.status}`);
+      const data=await res.json();
+      allStudies=allStudies.concat(data.studies||[]);
+      nextToken=data.nextPageToken||null;
+      page++;
+      document.getElementById('loadMsg').textContent=`Found ${allStudies.length} studies… geocoding locations`;
+      // Stop after 5 pages (1000 trials) to keep it fast
+      if(page>=5)break;
+    } while(nextToken);
+
+    if(!allStudies.length){
+      showOv('none');
+      document.getElementById('noneMsg').textContent=`No actively recruiting trials found for "${cond}". Try an alternate spelling or broader term.`;
+      return;
+    }
+
+    // Filter for relevance: only keep studies where the condition/title/keywords
+    // actually relate to the search — eliminates trials that merely mention
+    // the condition in exclusion criteria (e.g. pembrolizumab cancer trials)
+    const condWords=cond.toLowerCase().split(/\s+/).filter(w=>w.length>2);
+    allStudies=allStudies.filter(study=>{
+      const m=study.protocolSection;
+      if(!m)return false;
+      const conditions=(m.conditionsModule?.conditions||[]).join(' ').toLowerCase();
+      const keywords=(m.conditionsModule?.keywords||[]).join(' ').toLowerCase();
+      const title=(m.identificationModule?.briefTitle||'').toLowerCase();
+      const searchable=conditions+' '+keywords+' '+title;
+      return condWords.every(w=>searchable.includes(w));
+    });
+
+    if(!allStudies.length){
+      showOv('none');
+      document.getElementById('noneMsg').textContent=`No relevant trials found for "${cond}". Try an alternate spelling or broader term.`;
+      return;
+    }
+
+    // Extract trials with US locations
+    const raw=[];
+    for(const study of allStudies){
+      const m=study.protocolSection;
+      if(!m)continue;
+      const id=m.identificationModule?.nctId||'';
+      const title=m.identificationModule?.briefTitle||'Untitled';
+      const phases=m.designModule?.phases||[];
+      const phase=phases.length?phases[0]:'NA';
+      const sponsor=m.sponsorCollaboratorsModule?.leadSponsor?.name||'Unknown';
+      const status=m.statusModule?.overallStatus||'';
+      const summary=m.descriptionModule?.briefSummary||'';
+      const enrollment=m.designModule?.enrollmentInfo?.count||'';
+      const startDate=m.statusModule?.startDateStruct?.date||'';
+      const endDate=m.statusModule?.primaryCompletionDateStruct?.date||'';
+      const conditions=m.conditionsModule?.conditions||[];
+
+      // KEY FIX #4: Correctly extract eligibility from eligibilityModule
+      const eligRaw=m.eligibilityModule?.eligibilityCriteria||'';
+      const eligibility=parseEligibility(eligRaw);
+      const sex=m.eligibilityModule?.sex||'';
+      const minAge=m.eligibilityModule?.minimumAge||'';
+      const maxAge=m.eligibilityModule?.maximumAge||'';
+
+      // KEY FIX #5: Correctly extract central contacts
+      const clm=m.contactsLocationsModule||{};
+      const centralContacts=(clm.centralContacts||[]).map(c=>({
+        name:c.name||'',phone:c.phone||'',email:c.email||'',role:c.role||''
+      }));
+
+      // KEY FIX #6: Correctly extract per-location contacts
+      const locs=clm.locations||[];
+      for(const loc of locs){
+        if(loc.country!=='United States')continue;
+        const locContacts=(loc.contacts||[]).map(c=>({
+          name:c.name||'',phone:c.phone||'',email:c.email||'',role:c.role||''
+        }));
+        // Merge: site contacts first, fall back to central contacts
+        const contacts=[...locContacts,...centralContacts].filter(c=>c.phone||c.email);
+        // Deduplicate by name
+        const seen=new Set();
+        const uniqContacts=contacts.filter(c=>{if(seen.has(c.name))return false;seen.add(c.name);return true});
+
+        // Pull coordinates directly from API geoPoint — no geocoding needed for these
+        const gLat=loc.geoPoint?.lat;
+        const gLon=loc.geoPoint?.lon;
+        raw.push({
+          id,title,phase,sponsor,status,summary,enrollment,
+          startDate,endDate,conditions,eligibility,sex,minAge,maxAge,
+          contacts:uniqContacts,
+          city:loc.city||'',state:loc.state||'',
+          facility:loc.facility||'',
+          locStatus:loc.status||'',
+          zip:loc.zip||'',
+          latlng:(gLat&&gLon)?[parseFloat(gLat),parseFloat(gLon)]:null,
+          distance:null
+        });
+      }
+    }
+
+    if(!raw.length){
+      showOv('none');
+      document.getElementById('noneMsg').textContent=`Trials found for "${cond}" but none have US location data.`;
+      return;
+    }
+
+    // Only geocode the small fraction of locations missing geoPoint (<10% typically)
+    const needGeo=raw.filter(t=>!t.latlng&&t.city&&t.state);
+    const uniq={};
+    for(const t of needGeo){const k=`${t.city}|${t.state}`;if(!(k in uniq))uniq[k]=null}
+    const keys=Object.keys(uniq);
+
+    if(keys.length){
+      document.getElementById('loadMsg').textContent=`Geocoding ${keys.length} remaining locations…`;
+      const POOL=5; // 5 concurrent — ~20× faster than sequential 1/sec
+      for(let i=0;i<keys.length;i+=POOL){
+        const batch=keys.slice(i,i+POOL);
+        const results=await Promise.all(batch.map(k=>{const[city,state]=k.split('|');return geocode(city,state)}));
+        batch.forEach((k,j)=>{uniq[k]=results[j]});
+        document.getElementById('loadMsg').textContent=`Geocoding locations… ${Math.min(i+POOL,keys.length)}/${keys.length}`;
+        if(i+POOL<keys.length)await new Promise(r=>setTimeout(r,250));
+      }
+      for(const t of needGeo){const k=`${t.city}|${t.state}`;t.latlng=uniq[k]||null}
+    }
+
+    // Assign distances + deduplicate
+    for(const t of raw){
+      if(t.latlng&&userLL)t.distance=haversine(userLL,t.latlng);
+      t._dk=`${t.id}_${t.facility}_${t.city}`;
+    }
+    const seen2=new Set();
+    allTrials=raw.filter(t=>{if(!t.latlng)return false;if(seen2.has(t._dk))return false;seen2.add(t._dk);return true});
+
+    document.getElementById('filterRow').style.display='flex';
+    applyFilters();
+
+  }catch(err){
+    console.error(err);
+    showOv('none');
+    document.getElementById('noneMsg').textContent='Could not connect to ClinicalTrials.gov. Please check your connection and try again.';
+  }
+}
+
+// ── FILTERS ──
+function applyFilters(){
+  const maxD=parseFloat(document.getElementById('distSel').value);
+  filtered=allTrials.filter(t=>{
+    const dOk=!userLL||t.distance==null||t.distance<=maxD;
+    const pOk=phaseF==='all'||getPNum(t.phase)===phaseF;
+    return dOk&&pOk;
+  });
+  if(sortNearest&&userLL)filtered.sort((a,b)=>(a.distance||9999)-(b.distance||9999));
+  renderAll();
+}
+
+function getPNum(p){
+  if(!p)return'na';
+  const u=p.toUpperCase();
+  if(u.includes('4'))return'4';if(u.includes('3'))return'3';
+  if(u.includes('2'))return'2';if(u.includes('1'))return'1';
+  return'na';
+}
+function getPhaseLabel(p){
+  const n=getPNum(p);
+  return n==='na'?'N/A':`Phase ${n}`;
+}
+
+function setPhase(v){
+  phaseF=v;
+  ['all','1','2','3'].forEach(x=>document.getElementById(`chip-${x}`).classList.toggle('active',x===v));
+  applyFilters();
+}
+function toggleSort(){
+  sortNearest=!sortNearest;
+  document.getElementById('sortLbl').textContent=sortNearest?'Nearest':'Phase';
+  if(!sortNearest)filtered.sort((a,b)=>getPNum(b.phase).localeCompare(getPNum(a.phase)));
+  else if(userLL)filtered.sort((a,b)=>(a.distance||9999)-(b.distance||9999));
+  renderList();
+}
+
+// ── RENDER ──
+function renderAll(){
+  markers.clearLayers();
+  showOv('none2');
+  if(!filtered.length){showOv('none');document.getElementById('noneMsg').textContent=phaseF!=='all'?`No Phase ${phaseF} trials within range. Try All Phases.`:'No trials in this range. Try increasing distance.';setPanel(0);return}
+
+  filtered.forEach((t,i)=>{
+    if(!t.latlng)return;
+    const pn=getPNum(t.phase);
+    const col=pn==='3'?'#F5A623':pn==='4'?'#34C98A':pn==='1'?'#B0BEC5':'#2EC4B6';
+    const ic=L.divIcon({
+      html:`<div style="position:relative;width:22px;height:22px">
+        <div style="position:absolute;inset:0;border:2px solid ${col};border-radius:50%;animation:pulse-ring 2s ease-out infinite"></div>
+        <div style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:${col};border:2.5px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.5)"></div>
+      </div>`,
+      iconSize:[22,22],iconAnchor:[11,11],className:'',popupAnchor:[0,-13]
+    });
+    const mk=L.marker(t.latlng,{icon:ic}).addTo(markers);
+    mk.bindPopup(`
+      <div class="popup-title">${t.title.length>75?t.title.slice(0,75)+'…':t.title}</div>
+      <div class="popup-phase">${getPhaseLabel(t.phase)} · ${t.status.replace(/_/g,' ')}</div>
+      <div class="popup-loc">📍 ${t.facility||t.city}, ${t.state}</div>
+      ${t.distance?`<div style="font-size:11px;color:#F5A623;font-weight:700;margin-bottom:8px">${Math.round(t.distance)} mi away</div>`:''}
+      <button class="popup-btn" onclick="showDetail(${i})">View Details & Contact →</button>
+    `);
+    mk.on('click',()=>{
+      document.querySelectorAll('.card').forEach(c=>c.classList.remove('hl'));
+      const el=document.getElementById(`c${i}`);
+      if(el){el.classList.add('hl');el.scrollIntoView({behavior:'smooth',block:'nearest'})}
+    });
+  });
+
+  const pts=filtered.filter(t=>t.latlng).map(t=>t.latlng);
+  if(pts.length){if(userLL)pts.push(userLL);map.fitBounds(L.latLngBounds(pts),{padding:[40,40],maxZoom:10})}
+
+  const cond=document.getElementById('sInput').value;
+  document.getElementById('pTitle').textContent=`"${cond}" Trials`;
+  document.getElementById('pSub').textContent=`${filtered.length} location${filtered.length===1?'':'s'} found`;
+  document.getElementById('resCount').textContent=`${filtered.length} sites`;
+  renderList();
+  setPanel(2);
+}
+
+function renderList(){
+  const el=document.getElementById('resList');
+  if(!filtered.length){el.innerHTML='';return}
+  el.innerHTML=filtered.map((t,i)=>{
+    const pn=getPNum(t.phase);
+    const hasContact=t.contacts&&t.contacts.length>0;
+    return`<div class="card p${pn}" id="c${i}" onclick="cardClick(${i})">
+      <div class="card-head">
+        <div class="pbadge b${pn}">${getPhaseLabel(t.phase)}</div>
+        <div class="card-title">${t.title}</div>
+      </div>
+      <div class="card-org">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        ${t.sponsor}
+      </div>
+      <div class="card-loc">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 1 7 7c0 4-7 13-7 13S5 13 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        ${t.facility||t.city}${t.state?', '+t.state:''}
+        ${t.locStatus?` · <span style="color:var(--success)">${t.locStatus.replace(/_/g,' ')}</span>`:''}
+      </div>
+      <div class="card-foot">
+        <span class="dist-tag">${t.distance&&userLL?Math.round(t.distance)+' mi':t.city+', '+t.state}</span>
+        <button class="view-btn" onclick="event.stopPropagation();showDetail(${i})">Details ${hasContact?'& Contact':''} →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cardClick(i){
+  const t=filtered[i];
+  if(t.latlng)map.setView(t.latlng,12);
+  showDetail(i);
+}
+
+// ── DETAIL SHEET ──
+function showDetail(i){
+  const t=filtered[i];
+  const pn=getPNum(t.phase);
+  const pLabel=getPhaseLabel(t.phase);
+  const badgeClass=`b${pn}`;
+
+  // BUILD CONTACTS HTML
+  let contactsHtml='';
+  if(t.contacts&&t.contacts.length){
+    const cItems=t.contacts.map(c=>{
+      const phoneHtml=c.phone?`<a href="tel:${c.phone.replace(/\D/g,'')}" class="contact-btn phone">
+        <div class="contact-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.5 10.5a19.79 19.79 0 0 1-3-8.57A2 2 0 0 1 3.48 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.13 6.13l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <div class="contact-btn-text"><span class="contact-btn-label">Tap to call</span><span class="contact-btn-value">${c.phone}</span></div>
+      </a>`:'';
+      const emailHtml=c.email?`<a href="mailto:${c.email}?subject=Interest in Clinical Trial: ${encodeURIComponent(t.title)} (${t.id})&body=${encodeURIComponent(PRESET_MSG(t.title,t.id))}" class="contact-btn email">
+        <div class="contact-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+        <div class="contact-btn-text"><span class="contact-btn-label">Tap to email</span><span class="contact-btn-value">${c.email}</span></div>
+      </a>`:'';
+      if(!phoneHtml&&!emailHtml)return'';
+      return`<div class="contact-card">
+        ${c.name?`<div class="contact-name">${c.name}</div>`:''}
+        ${c.role?`<div class="contact-role">${c.role.replace(/_/g,' ')}</div>`:''}
+        <div class="contact-links">${phoneHtml}${emailHtml}</div>
+      </div>`;
+    }).filter(Boolean).join('');
+    if(cItems){
+      contactsHtml=`<div class="d-sec">
+        <div class="d-label">📞 Contact to Enroll</div>
+        ${cItems}
+      </div>`;
+    }
+  }
+
+  // BUILD ELIGIBILITY HTML
+  let eligHtml='';
+  const el=t.eligibility;
+  if(el&&(el.inc.length||el.exc.length)){
+    const ageSex=[];
+    if(t.minAge||t.maxAge)ageSex.push(`Age: ${t.minAge||'any'}${t.maxAge?' – '+t.maxAge:''}`);
+    if(t.sex&&t.sex!=='ALL')ageSex.push(`Sex: ${t.sex}`);
+
+    const incHtml=el.inc.length?`<div class="elig-block">
+      <div class="elig-head inc">✓ Inclusion Criteria</div>
+      ${el.inc.map(c=>`<div class="elig-item"><div class="elig-dot i"></div><div>${c}</div></div>`).join('')}
+    </div>`:'';
+    const excHtml=el.exc.length?`<div class="elig-block">
+      <div class="elig-head exc">✗ Exclusion Criteria</div>
+      ${el.exc.map(c=>`<div class="elig-item"><div class="elig-dot e"></div><div>${c}</div></div>`).join('')}
+    </div>`:'';
+
+    eligHtml=`<div class="d-sec">
+      <div class="d-label">📋 Eligibility Criteria</div>
+      ${ageSex.length?`<div class="meta-row">${ageSex.map(a=>`<span class="meta-pill">${a}</span>`).join('')}</div>`:''}
+      ${incHtml}${excHtml}
+      <div style="font-size:11px;color:var(--gray-3);margin-top:8px;line-height:1.5">These are partial criteria. Review the full trial listing for complete eligibility requirements before contacting the research team.</div>
+    </div>`;
+  }
+
+  document.getElementById('dBody').innerHTML=`
+    <div class="nct-id">${t.id}</div>
+    <div class="meta-row">
+      <span class="pbadge ${badgeClass}">${pLabel}</span>
+      <span class="meta-pill" style="color:var(--success)">● ${t.status.replace(/_/g,' ')}</span>
+      ${t.enrollment?`<span class="meta-pill">👥 ${parseInt(t.enrollment).toLocaleString()} participants</span>`:''}
+    </div>
+    <div class="d-title">${t.title}</div>
+
+    ${t.conditions.length?`<div class="d-sec">
+      <div class="d-label">Condition</div>
+      <div class="cond-wrap">${t.conditions.map(c=>`<span class="cond-chip">${c}</span>`).join('')}</div>
+    </div>`:''}
+
+    <div class="d-sec">
+      <div class="d-label">Sponsor</div>
+      <div class="d-val">${t.sponsor}</div>
+    </div>
+
+    <div class="d-sec">
+      <div class="d-label">Location</div>
+      <div class="loc-item">
+        <div class="loc-name">${t.facility||'Research Site'}</div>
+        <div class="loc-city">${t.city}${t.state?', '+t.state:''}${t.zip?' '+t.zip:''}</div>
+        ${t.locStatus?`<div class="loc-status">● ${t.locStatus.replace(/_/g,' ')}</div>`:''}
+        ${t.distance&&userLL?`<div class="loc-dist">${Math.round(t.distance)} miles from your location</div>`:''}
+      </div>
+    </div>
+
+    ${t.startDate||t.endDate?`<div class="d-sec">
+      <div class="d-label">Timeline</div>
+      <div class="d-val">${t.startDate?'Started: '+t.startDate:''}${t.startDate&&t.endDate?' · ':''}${t.endDate?'Est. completion: '+t.endDate:''}</div>
+    </div>`:''}
+
+    ${eligHtml}
+
+    ${contactsHtml||`<div class="d-sec">
+      <div class="d-label">📞 Contact</div>
+      <div style="font-size:13px;color:var(--gray-2)">Contact information is listed on the full trial page. Click the button below to view.</div>
+    </div>`}
+
+    ${t.summary?`<div class="d-sec">
+      <div class="d-label">About This Study</div>
+      <div class="d-val">${t.summary.slice(0,500)}${t.summary.length>500?'…':''}</div>
+    </div>`:''}
+
+    <a class="d-cta" href="https://clinicaltrials.gov/study/${t.id}" target="_blank" rel="noopener">
+      View Full Trial on ClinicalTrials.gov ↗
+    </a>
+    <div class="d-disclaimer">Always consult your physician before enrolling in a clinical trial. Contact information pre-fills a message indicating potential interest and possible eligibility.</div>
+  `;
+
+  document.getElementById('detail').classList.add('open');
+}
+
+function closeDetail(){document.getElementById('detail').classList.remove('open')}
+
+// ── PANEL ──
+const pStates=['','peek','half','full'];
+function setPanel(s){panelSt=s;const p=document.getElementById('panel');p.className='panel '+(pStates[s]||'')}
+function cyclePanel(){setPanel(panelSt<3?panelSt+1:1)}
+
+// ── STATE ──
+function showOv(which){
+  document.getElementById('ovEmpty').classList.remove('on');
+  document.getElementById('ovLoad').classList.remove('on');
+  document.getElementById('ovNone').classList.remove('on');
+  if(which==='load')document.getElementById('ovLoad').classList.add('on');
+  else if(which==='none')document.getElementById('ovNone').classList.add('on');
+  else if(which==='empty')document.getElementById('ovEmpty').classList.add('on');
+}
+
+// ── DISCLAIMER ──
+function showDisclaimer(force){
+  document.getElementById('discBackdrop').classList.remove('hidden');
+}
+function closeDisclaimer(){
+  document.getElementById('discBackdrop').classList.add('hidden');
+}
+function acceptDisclaimer(){
+  try{localStorage.setItem('ctf_disclaimer_accepted','1')}catch(e){}
+  closeDisclaimer();
+}
+
+// Show on first visit; skip if already accepted
+(function(){
+  let accepted=false;
+  try{accepted=localStorage.getItem('ctf_disclaimer_accepted')==='1'}catch(e){}
+  if(!accepted)showDisclaimer();
+})();
+
+initMap();
+getUserLocation();
+</script>
+</body>
+</html>
