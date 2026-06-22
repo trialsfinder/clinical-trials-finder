@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0228)file:///Users/sanazattaripour/Library/Application%20Support/Claude/local-agent-mode-sessions/7cc4a4cc-1a5f-4691-bcb8-8036abd735ba/193dfbc3-72cf-4df2-b68c-097d1c6cca28/local_e3e55f6e-6024-4365-86b5-c7eed109c698/outputs/index.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ClinicalTrials Finder</title>
 <!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-4L5428QVVM"></script>
+<script async="" src="./index_files/js"></script>
 <script>
   window.dataLayer=window.dataLayer||[];
   function gtag(){dataLayer.push(arguments)}
   gtag('js',new Date());
   gtag('config','G-4L5428QVVM');
 </script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="./index_files/leaflet.min.css">
+<script src="./index_files/leaflet.min.js"></script>
 <style>
   :root {
     --navy:#0D1B2A; --navy-mid:#1A2E45; --navy-light:#243B55;
@@ -203,28 +203,25 @@
 <div class="header">
   <div class="header-top">
     <div class="logo">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D1B2A" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a7 7 0 0 1 7 7c0 4-7 13-7 13S5 13 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5" fill="#0D1B2A"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D1B2A" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a7 7 0 0 1 7 7c0 4-7 13-7 13S5 13 5 9a7 7 0 0 1 7-7z"></path><circle cx="12" cy="9" r="2.5" fill="#0D1B2A"></circle></svg>
     </div>
     <div class="brand">
       <div class="brand-name">ClinicalTrials Finder</div>
       <div class="brand-sub">Active recruiting studies · ClinicalTrials.gov</div>
     </div>
     <button class="loc-btn" onclick="getUserLocation()" title="Use my location">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path></svg>
     </button>
     <button class="info-btn" onclick="showDisclaimer(true)" title="Medical Disclaimer">ⓘ</button>
   </div>
   <div class="search-row">
     <div class="search-wrap">
-      <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="sInput" class="s-input" type="text" placeholder="e.g. Parkinson disease, diabetes, lupus…"
-        autocomplete="off" autocorrect="off" spellcheck="false"
-        onkeydown="if(event.key==='Enter'){doSearch();this.blur()}"
-        oninput="onInput(this.value)"/>
+      <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+      <input id="sInput" class="s-input" type="text" placeholder="e.g. Parkinson disease, diabetes, lupus…" autocomplete="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key===&#39;Enter&#39;){doSearch();this.blur()}" oninput="onInput(this.value)">
       <div class="sugg" id="sugg"></div>
     </div>
     <button class="s-btn" id="sBtn" onclick="doSearch()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
       Search
     </button>
   </div>
@@ -233,24 +230,24 @@
 <div class="filter-row" id="filterRow" style="display:none">
   <span class="fl">Distance</span>
   <select class="d-sel" id="distSel" onchange="applyFilters()">
-    <option value="5">5 mi</option>
+    <option value="5" selected="">5 mi</option>
     <option value="10">10 mi</option>
     <option value="25">25 mi</option>
-    <option value="50" selected>50 mi</option>
+    <option value="50">50 mi</option>
     <option value="100">100 mi</option>
     <option value="250">250 mi</option>
     <option value="500">500 mi</option>
     <option value="99999">Nationwide</option>
   </select>
-  <button class="chip active" id="chip-all" onclick="setPhase('all')">All Phases</button>
-  <button class="chip" id="chip-1" onclick="setPhase('1')">Phase 1</button>
-  <button class="chip" id="chip-2" onclick="setPhase('2')">Phase 2</button>
-  <button class="chip" id="chip-3" onclick="setPhase('3')">Phase 3</button>
+  <button class="chip active" id="chip-all" onclick="setPhase(&#39;all&#39;)">All Phases</button>
+  <button class="chip" id="chip-1" onclick="setPhase(&#39;1&#39;)">Phase 1</button>
+  <button class="chip" id="chip-2" onclick="setPhase(&#39;2&#39;)">Phase 2</button>
+  <button class="chip" id="chip-3" onclick="setPhase(&#39;3&#39;)">Phase 3</button>
   <span class="res-count" id="resCount"></span>
 </div>
 
 <div class="map-wrap">
-  <div id="map"></div>
+  <div id="map" class="leaflet-container leaflet-touch leaflet-retina leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(0px, 0px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 18; transform: translate3d(0px, 0px, 0px) scale(1);"><img alt="" src="./index_files/204.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(656px, 82px, 0px); opacity: 1;"><img alt="" src="./index_files/205.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(656px, 338px, 0px); opacity: 1;"><img alt="" src="./index_files/204(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(400px, 82px, 0px); opacity: 1;"><img alt="" src="./index_files/204(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(912px, 82px, 0px); opacity: 1;"><img alt="" src="./index_files/205(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(400px, 338px, 0px); opacity: 1;"><img alt="" src="./index_files/205(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(912px, 338px, 0px); opacity: 1;"><img alt="" src="./index_files/203.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(656px, -174px, 0px); opacity: 1;"><img alt="" src="./index_files/206.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(656px, 594px, 0px); opacity: 1;"><img alt="" src="./index_files/203(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(400px, -174px, 0px); opacity: 1;"><img alt="" src="./index_files/203(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(912px, -174px, 0px); opacity: 1;"><img alt="" src="./index_files/206(1).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(400px, 594px, 0px); opacity: 1;"><img alt="" src="./index_files/206(2).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(912px, 594px, 0px); opacity: 1;"><img alt="" src="./index_files/204(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(144px, 82px, 0px); opacity: 1;"><img alt="" src="./index_files/204(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1168px, 82px, 0px); opacity: 1;"><img alt="" src="./index_files/205(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(144px, 338px, 0px); opacity: 1;"><img alt="" src="./index_files/205(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1168px, 338px, 0px); opacity: 1;"><img alt="" src="./index_files/203(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(144px, -174px, 0px); opacity: 1;"><img alt="" src="./index_files/203(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1168px, -174px, 0px); opacity: 1;"><img alt="" src="./index_files/206(3).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(144px, 594px, 0px); opacity: 1;"><img alt="" src="./index_files/206(4).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1168px, 594px, 0px); opacity: 1;"><img alt="" src="./index_files/204(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-112px, 82px, 0px); opacity: 1;"><img alt="" src="./index_files/204(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1424px, 82px, 0px); opacity: 1;"><img alt="" src="./index_files/205(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-112px, 338px, 0px); opacity: 1;"><img alt="" src="./index_files/205(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1424px, 338px, 0px); opacity: 1;"><img alt="" src="./index_files/203(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-112px, -174px, 0px); opacity: 1;"><img alt="" src="./index_files/203(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1424px, -174px, 0px); opacity: 1;"><img alt="" src="./index_files/206(5).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-112px, 594px, 0px); opacity: 1;"><img alt="" src="./index_files/206(6).png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(1424px, 594px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"><div class="leaflet-marker-icon leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -7px; margin-top: -7px; width: 14px; height: 14px; transform: translate3d(788px, 344px, 0px); z-index: 344;"><div style="width:14px;height:14px;background:#2EC4B6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(46,196,182,.25)"></div></div></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(22660.5px, 52486.3px, 0px) scale(256);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="file:///Users/sanazattaripour/Library/Application%20Support/Claude/local-agent-mode-sessions/7cc4a4cc-1a5f-4691-bcb8-8036abd735ba/193dfbc3-72cf-4df2-b68c-097d1c6cca28/local_e3e55f6e-6024-4365-86b5-c7eed109c698/outputs/index.html#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="false"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="file:///Users/sanazattaripour/Library/Application%20Support/Claude/local-agent-mode-sessions/7cc4a4cc-1a5f-4691-bcb8-8036abd735ba/193dfbc3-72cf-4df2-b68c-097d1c6cca28/local_e3e55f6e-6024-4365-86b5-c7eed109c698/outputs/index.html#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com/" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a> <span aria-hidden="true">|</span> © <a href="https://openstreetmap.org/">OpenStreetMap</a></div></div></div></div>
 
   <div class="overlay on" id="ovEmpty">
     <div class="ov-icon">🔬</div>
@@ -295,7 +292,7 @@
 <div class="disc-backdrop hidden" id="discBackdrop">
   <div class="disc-sheet">
     <div class="disc-icon">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4m0 4h.01"></path></svg>
     </div>
     <div class="disc-title">Medical Disclaimer</div>
     <div class="disc-version">ClinicalTrials Finder · For Informational Use Only</div>
@@ -367,7 +364,9 @@ function getUserLocation() {
     const ic=L.divIcon({html:`<div style="width:14px;height:14px;background:#2EC4B6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(46,196,182,.25)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:''});
     userMarker=L.marker(userLL,{icon:ic}).addTo(map).bindPopup('<div style="font-size:12px;color:#2EC4B6;font-weight:700">📍 Your Location</div>');
     map.setView(userLL,9);
-  },()=>alert('Unable to get location. You can still search by condition.'));
+  },()=>{
+    // Location denied or unavailable — app works fine without it, no alert needed
+  });
 }
 
 // ── SUGGESTIONS ──
@@ -862,5 +861,6 @@ function acceptDisclaimer(){
 initMap();
 getUserLocation();
 </script>
-</body>
-</html>
+
+
+</body></html>
