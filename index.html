@@ -231,7 +231,7 @@
   <div class="search-row" style="margin-top:7px">
     <div class="search-wrap">
       <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-      <input id="sKeyword" class="s-input" type="text" placeholder="Site or investigator — optional (e.g. UC Irvine, Dr. Smith)"
+      <input id="sKeyword" class="s-input" type="text" placeholder="Keyword (optional) — e.g. stem cell, UC Irvine, levodopa, Dr. Smith"
         autocomplete="off" autocorrect="off" spellcheck="false"
         style="font-size:12px;color:var(--gray-2)"
         onkeydown="if(event.key==='Enter'){doSearch();this.blur()}"/>
@@ -488,16 +488,22 @@ async function doSearch() {
     // Filter for relevance: only keep studies where the condition/title/keywords
     // actually relate to the search — eliminates trials that merely mention
     // the condition in exclusion criteria (e.g. pembrolizumab cancer trials)
-    const condWords=cond.toLowerCase().split(/\s+/).filter(w=>w.length>2);
-    allStudies=allStudies.filter(study=>{
-      const m=study.protocolSection;
-      if(!m)return false;
-      const conditions=(m.conditionsModule?.conditions||[]).join(' ').toLowerCase();
-      const keywords=(m.conditionsModule?.keywords||[]).join(' ').toLowerCase();
-      const title=(m.identificationModule?.briefTitle||'').toLowerCase();
-      const searchable=conditions+' '+keywords+' '+title;
-      return condWords.every(w=>searchable.includes(w));
-    });
+    // Skip this filter if a keyword was provided — the API already filtered via
+    // query.term, and the keyword may only appear in the protocol body (not in
+    // conditions/title), so filtering here would wrongly drop valid results
+    // (e.g. "stem cell" finding bemdaneprocel).
+    if(!keyword){
+      const condWords=cond.toLowerCase().split(/\s+/).filter(w=>w.length>2);
+      allStudies=allStudies.filter(study=>{
+        const m=study.protocolSection;
+        if(!m)return false;
+        const conditions=(m.conditionsModule?.conditions||[]).join(' ').toLowerCase();
+        const keywords=(m.conditionsModule?.keywords||[]).join(' ').toLowerCase();
+        const title=(m.identificationModule?.briefTitle||'').toLowerCase();
+        const searchable=conditions+' '+keywords+' '+title;
+        return condWords.every(w=>searchable.includes(w));
+      });
+    }
 
     if(!allStudies.length){
       showOv('none');
