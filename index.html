@@ -105,7 +105,12 @@
   .detail{position:absolute;bottom:0;left:0;right:0;z-index:950;background:var(--navy);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:92vh;overflow-y:auto}
   .detail.open{transform:translateY(0)}
   .d-header{position:sticky;top:0;background:var(--navy);padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;z-index:10}
+  .d-back{background:none;border:none;color:var(--amber);font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;letter-spacing:.01em}
   .d-close{width:32px;height:32px;background:rgba(255,255,255,.08);border:none;border-radius:50%;color:var(--white);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .d-nav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06);background:var(--navy)}
+  .d-nav-btn{background:rgba(255,255,255,.08);border:none;color:var(--white);font-size:13px;font-weight:600;padding:6px 14px;border-radius:var(--rs);cursor:pointer}
+  .d-nav-btn:disabled{opacity:.3;cursor:not-allowed}
+  .d-nav-pos{font-size:12px;color:var(--gray-2)}
   .d-body{padding:16px}
   .d-title{font-size:16px;font-weight:700;line-height:1.4;margin-bottom:16px}
   .d-sec{margin-bottom:18px}
@@ -228,7 +233,7 @@
       Search
     </button>
   </div>
-  <div class="search-row" style="margin-top:7px">
+  <div class="search-row" style="margin-top:7px;gap:8px">
     <div class="search-wrap">
       <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
       <input id="sKeyword" class="s-input" type="text" placeholder="Keyword (optional) — e.g. stem cell, UC Irvine, levodopa, Dr. Smith"
@@ -236,21 +241,20 @@
         style="font-size:12px;color:var(--gray-2)"
         onkeydown="if(event.key==='Enter'){doSearch();this.blur()}"/>
     </div>
+    <select class="d-sel" id="distSel" onchange="applyFilters()" title="Search radius">
+      <option value="5" selected>5 mi</option>
+      <option value="10">10 mi</option>
+      <option value="25">25 mi</option>
+      <option value="50">50 mi</option>
+      <option value="100">100 mi</option>
+      <option value="250">250 mi</option>
+      <option value="500">500 mi</option>
+      <option value="99999">Nationwide</option>
+    </select>
   </div>
 </div>
 
 <div class="filter-row" id="filterRow" style="display:none">
-  <span class="fl">Distance</span>
-  <select class="d-sel" id="distSel" onchange="applyFilters()">
-    <option value="5" selected>5 mi</option>
-    <option value="10">10 mi</option>
-    <option value="25">25 mi</option>
-    <option value="50">50 mi</option>
-    <option value="100">100 mi</option>
-    <option value="250">250 mi</option>
-    <option value="500">500 mi</option>
-    <option value="99999">Nationwide</option>
-  </select>
   <button class="chip active" id="chip-all" onclick="setPhase('all')">All Phases</button>
   <button class="chip" id="chip-1" onclick="setPhase('1')">Phase 1</button>
   <button class="chip" id="chip-2" onclick="setPhase('2')">Phase 2</button>
@@ -293,8 +297,14 @@
   <!-- DETAIL SHEET -->
   <div class="detail" id="detail">
     <div class="d-header">
-      <div style="font-size:14px;font-weight:700">Trial Details</div>
+      <button class="d-back" onclick="closeDetail()">← Results</button>
+      <button class="d-back" onclick="newSearch()" style="color:var(--gray-2)">⌂ New search</button>
       <button class="d-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="d-nav" id="dNav">
+      <button class="d-nav-btn" id="dPrev" onclick="navigateDetail(-1)">‹ Prev</button>
+      <span class="d-nav-pos" id="dPos"></span>
+      <button class="d-nav-btn" id="dNext" onclick="navigateDetail(1)">Next ›</button>
     </div>
     <div class="d-body" id="dBody"></div>
   </div>
@@ -730,6 +740,10 @@ function cardClick(i){
 
 // ── DETAIL SHEET ──
 function showDetail(i){
+  currentDetailIndex=i;
+  document.getElementById('dPos').textContent=`${i+1} of ${filtered.length}`;
+  document.getElementById('dPrev').disabled=i===0;
+  document.getElementById('dNext').disabled=i===filtered.length-1;
   const t=filtered[i];
   const pn=getPNum(t.phase);
   const pLabel=getPhaseLabel(t.phase);
@@ -843,6 +857,24 @@ function showDetail(i){
 }
 
 function closeDetail(){document.getElementById('detail').classList.remove('open')}
+
+function newSearch(){
+  closeDetail();
+  setPanel(0);
+  markers.clearLayers();
+  allTrials=[];filtered=[];
+  document.getElementById('sInput').value='';
+  document.getElementById('sKeyword').value='';
+  document.getElementById('filterRow').style.display='none';
+  showOv('empty');
+  document.getElementById('sInput').focus();
+}
+
+let currentDetailIndex=0;
+function navigateDetail(dir){
+  const next=currentDetailIndex+dir;
+  if(next>=0&&next<filtered.length)showDetail(next);
+}
 
 // ── PANEL ──
 const pStates=['','peek','half','full'];
