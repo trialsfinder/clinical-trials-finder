@@ -102,16 +102,17 @@
   .view-btn{font-size:12px;font-weight:600;color:var(--navy);background:var(--amber);border:none;border-radius:8px;padding:6px 14px;cursor:pointer}
 
   /* DETAIL SHEET */
-  .detail{position:absolute;bottom:0;left:0;right:0;z-index:950;background:var(--navy);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:92vh;overflow-y:auto}
+  .detail{position:absolute;bottom:0;left:0;right:0;z-index:950;background:var(--navy);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:92vh;display:flex;flex-direction:column}
   .detail.open{transform:translateY(0)}
-  .d-header{position:sticky;top:0;background:var(--navy);padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;z-index:10}
-  .d-back{background:none;border:none;color:var(--amber);font-size:13px;font-weight:600;cursor:pointer;padding:4px 0;letter-spacing:.01em}
+  .d-fixed{flex-shrink:0;background:var(--navy);border-radius:20px 20px 0 0;z-index:10}
+  .d-header{padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
+  .d-back{background:none;border:none;color:var(--amber);font-size:13px;font-weight:600;cursor:pointer;padding:6px 2px;letter-spacing:.01em;-webkit-tap-highlight-color:rgba(0,0,0,0)}
   .d-close{width:32px;height:32px;background:rgba(255,255,255,.08);border:none;border-radius:50%;color:var(--white);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-  .d-nav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06);background:var(--navy)}
+  .d-nav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
   .d-nav-btn{background:rgba(255,255,255,.08);border:none;color:var(--white);font-size:13px;font-weight:600;padding:6px 14px;border-radius:var(--rs);cursor:pointer}
   .d-nav-btn:disabled{opacity:.3;cursor:not-allowed}
   .d-nav-pos{font-size:12px;color:var(--gray-2)}
-  .d-body{padding:16px}
+  .d-body{padding:16px;overflow-y:auto;flex:1}
   .d-title{font-size:16px;font-weight:700;line-height:1.4;margin-bottom:16px}
   .d-sec{margin-bottom:18px}
   .d-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-2);margin-bottom:8px}
@@ -296,15 +297,17 @@
 
   <!-- DETAIL SHEET -->
   <div class="detail" id="detail">
-    <div class="d-header">
-      <button class="d-back" onclick="closeDetail()">← Results</button>
-      <button class="d-back" onclick="newSearch()" style="color:var(--gray-2)">⌂ New search</button>
-      <button class="d-close" onclick="closeDetail()">✕</button>
-    </div>
-    <div class="d-nav" id="dNav">
-      <button class="d-nav-btn" id="dPrev" onclick="navigateDetail(-1)">‹ Prev</button>
-      <span class="d-nav-pos" id="dPos"></span>
-      <button class="d-nav-btn" id="dNext" onclick="navigateDetail(1)">Next ›</button>
+    <div class="d-fixed">
+      <div class="d-header">
+        <button class="d-back" onclick="backToResults()">← Results</button>
+        <button class="d-back" onclick="newSearch()" style="color:var(--gray-2)">⌂ New search</button>
+        <button class="d-close" onclick="closeDetail()">✕</button>
+      </div>
+      <div class="d-nav" id="dNav">
+        <button class="d-nav-btn" id="dPrev" onclick="navigateDetail(-1)">‹ Prev</button>
+        <span class="d-nav-pos" id="dPos"></span>
+        <button class="d-nav-btn" id="dNext" onclick="navigateDetail(1)">Next ›</button>
+      </div>
     </div>
     <div class="d-body" id="dBody"></div>
   </div>
@@ -858,16 +861,22 @@ function showDetail(i){
 
 function closeDetail(){document.getElementById('detail').classList.remove('open')}
 
+function backToResults(){
+  closeDetail();
+  // Make sure the results panel is visible after closing detail
+  if(filtered.length>0)setPanel(2);
+}
+
 function newSearch(){
   closeDetail();
   setPanel(0);
-  markers.clearLayers();
+  if(markers)markers.clearLayers();
   allTrials=[];filtered=[];
   document.getElementById('sInput').value='';
   document.getElementById('sKeyword').value='';
   document.getElementById('filterRow').style.display='none';
   showOv('empty');
-  document.getElementById('sInput').focus();
+  setTimeout(()=>document.getElementById('sInput').focus(),300);
 }
 
 let currentDetailIndex=0;
