@@ -379,7 +379,7 @@ function initMap() {
     attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',maxZoom:18
   }).addTo(map);
   markers = L.layerGroup().addTo(map);
-  map.on('click',()=>{closeDetail();if(panelSt===3)setPanel(2)});
+  map.on('click',()=>{if(!returningToList){closeDetail();if(panelSt===3)setPanel(2)}});
 }
 
 function getUserLocation() {
@@ -862,16 +862,19 @@ function showDetail(i){
 
 function closeDetail(){document.getElementById('detail').classList.remove('open')}
 
+let returningToList=false;
 function backToResults(){
+  returningToList=true; // block map click from resetting panel
   closeDetail();
-  // Show full results panel so the list is clearly visible
   if(filtered.length>0){
     setPanel(3);
-    // Scroll the list to the trial they were just viewing
     setTimeout(()=>{
       const el=document.getElementById('c'+currentDetailIndex);
       if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
-    },350);
+      returningToList=false;
+    },500);
+  } else {
+    setTimeout(()=>{returningToList=false},500);
   }
 }
 
