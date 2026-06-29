@@ -630,6 +630,7 @@ async function doSearch() {
 
 // ── FILTERS ──
 function applyFilters(){
+  if(!allTrials.length)return; // no search done yet — don't show any error
   const maxD=parseFloat(document.getElementById('distSel').value);
   filtered=allTrials.filter(t=>{
     const dOk=!userLL||t.distance==null||t.distance<=maxD;
@@ -669,7 +670,7 @@ function toggleSort(){
 function renderAll(){
   markers.clearLayers();
   showOv('none2');
-  if(!filtered.length){showOv('none');document.getElementById('noneMsg').textContent=phaseF!=='all'?`No Phase ${phaseF} trials within range. Try All Phases.`:'No trials in this range. Try increasing distance.';setPanel(0);return}
+  if(!filtered.length){showOv('none');document.getElementById('noneMsg').textContent=phaseF!=='all'?`No Phase ${phaseF} trials within range. Try All Phases.`:'No trials found within this distance. Try increasing the distance range.';setPanel(0);return}
 
   filtered.forEach((t,i)=>{
     if(!t.latlng)return;
