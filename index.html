@@ -585,7 +585,7 @@ async function doSearch() {
     document.getElementById('loadMsg').textContent='Fetching trials from ClinicalTrials.gov…';
 
     do {
-      let url=`https://clinicaltrials.gov/api/v2/studies?query.cond=${encodeURIComponent(cond)}&filter.overallStatus=RECRUITING,ACTIVE_NOT_RECRUITING,ENROLLING_BY_INVITATION&pageSize=200&format=json`;
+      let url=`https://clinicaltrials.gov/api/v2/studies?query.cond=${encodeURIComponent(cond)}&filter.overallStatus=RECRUITING,ENROLLING_BY_INVITATION&pageSize=200&format=json`;
       if(keyword)url+=`&query.term=${encodeURIComponent(keyword)}`;
       if(nextToken)url+=`&pageToken=${nextToken}`;
 
@@ -657,6 +657,9 @@ async function doSearch() {
 
       const locs=clm.locations||[];
       for(const loc of locs){
+        // Skip locations that are explicitly not recruiting
+        const ls=(loc.status||'').toUpperCase();
+        if(ls&&ls!=='RECRUITING'&&ls!=='ENROLLING_BY_INVITATION')continue;
         const locContacts=(loc.contacts||[]).map(c=>({
           name:c.name||'',phone:c.phone||'',email:c.email||'',role:c.role||''
         }));
