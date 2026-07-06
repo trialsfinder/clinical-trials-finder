@@ -971,10 +971,7 @@ function buildOverviewHtml(t){
       <div class="cond-wrap">${t.conditions.map(c=>`<span class="cond-chip">${c}</span>`).join('')}</div>
     </div>`:''}
 
-    ${t.summary?`<div class="d-sec">
-      <div class="d-label">About This Study</div>
-      <div class="d-val">${t.summary.slice(0,450)}${t.summary.length>450?'…':''}</div>
-    </div>`:''}
+
 
     <div class="d-sec">
       <div class="d-label">Location</div>
@@ -1031,6 +1028,11 @@ function buildFullDetailsHtml(t){
       ${t.isVirtual?`<span class="meta-pill" style="color:var(--purple)">🌐 Remote option</span>`:''}
     </div>
     <div class="d-title">${t.title}</div>
+
+    ${t.summary?`<div class="d-sec">
+      <div class="d-label">About This Study</div>
+      <div class="d-val">${t.summary}</div>
+    </div>`:''}
 
     <div class="d-sec">
       <div class="d-label">Sponsor</div>
