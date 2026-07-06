@@ -494,6 +494,11 @@ async function doSearch() {
   setPanel(0);
   markers.clearLayers();
   allTrials=[];filtered=[];
+  // Reset sort and phase filter on every new search
+  sortNearest=true;
+  document.getElementById('sortLbl').textContent='Nearest';
+  phaseF='all';
+  ['all','1','2','3'].forEach(x=>{const el=document.getElementById(`chip-${x}`);if(el)el.classList.toggle('active',x==='all');});
 
   try{
     // KEY FIX #1: Remove `fields=` parameter — it was silently dropping location data
