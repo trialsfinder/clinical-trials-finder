@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ClinicalTrials Finder</title>
+<meta name="description" content="Find actively recruiting clinical trials near you. Free, live data from ClinicalTrials.gov. Worldwide.">
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-4L5428QVVM"></script>
 <script>
@@ -16,24 +17,27 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   :root {
-    --navy:#0D1B2A; --navy-mid:#1A2E45; --navy-light:#243B55;
+    --navy:#0B1724; --navy-mid:#162336; --navy-light:#1E3045;
     --amber:#F5A623; --amber-dim:#C87D0E;
-    --teal:#2EC4B6; --white:#F7F9FC;
-    --gray-1:#E8EDF3; --gray-2:#B0BEC5; --gray-3:#607080;
-    --danger:#E05252; --success:#34C98A;
-    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --teal:#00BAC8; --teal-soft:rgba(0,186,200,.12);
+    --white:#F0F6FC;
+    --gray-1:#DCE8F0; --gray-2:#A8B9C9; --gray-3:#556677;
+    --danger:#E05252; --success:#2DDC8D;
+    --purple:#9B59B6; --purple-soft:rgba(155,89,182,.12);
+    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     --r:12px; --rs:8px;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  body{font-family:var(--font);background:var(--navy);color:var(--white);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+  body{font-family:var(--font);background:var(--navy);color:var(--white);height:100dvh;display:flex;flex-direction:column;overflow:hidden;font-size:15px}
 
   /* HEADER */
-  .header{background:var(--navy);padding:14px 16px 10px;z-index:1000;border-bottom:1px solid rgba(255,255,255,.06)}
-  .header-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .header{background:var(--navy);padding:14px 16px 10px;z-index:1000;border-bottom:1px solid rgba(255,255,255,.07)}
+  .header-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
   .logo{width:34px;height:34px;background:var(--amber);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .brand{flex:1}
   .brand-name{font-size:15px;font-weight:700;letter-spacing:-.3px}
   .brand-sub{font-size:11px;color:var(--gray-2);margin-top:1px}
-  .loc-btn{width:34px;height:34px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+  .loc-btn,.info-btn{width:34px;height:34px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--gray-2);font-size:14px;font-weight:700;border:1px solid rgba(255,255,255,.1)}
   .search-row{display:flex;gap:8px}
   .search-wrap{flex:1;position:relative}
   .s-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gray-2);pointer-events:none}
@@ -47,10 +51,10 @@
   /* FILTERS */
   .filter-row{display:flex;gap:8px;align-items:center;padding:10px 16px 0;overflow-x:auto;scrollbar-width:none}
   .filter-row::-webkit-scrollbar{display:none}
-  .fl{font-size:11px;color:var(--gray-2);white-space:nowrap}
   .d-sel{background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:20px;color:var(--white);font-size:12px;padding:5px 10px;outline:none;cursor:pointer;-webkit-appearance:none}
   .chip{padding:5px 12px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:12px;color:var(--gray-2);cursor:pointer;white-space:nowrap;transition:all .15s}
   .chip.active{background:rgba(245,166,35,.15);border-color:var(--amber);color:var(--amber)}
+  .chip.remote-chip.active{background:var(--purple-soft);border-color:var(--purple);color:var(--purple)}
   .res-count{margin-left:auto;font-size:12px;color:var(--teal);white-space:nowrap;font-weight:600}
 
   /* MAP */
@@ -58,13 +62,17 @@
   #map{flex:1;width:100%;z-index:1}
 
   /* OVERLAYS */
-  .overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;background:var(--navy);border-radius:var(--r);padding:28px 32px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.4);min-width:240px;pointer-events:none;opacity:0;transition:opacity .2s;border:1px solid rgba(255,255,255,.08)}
+  .overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;background:var(--navy);border-radius:var(--r);padding:28px 32px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.4);min-width:260px;max-width:340px;pointer-events:none;opacity:0;transition:opacity .2s;border:1px solid rgba(255,255,255,.08)}
   .overlay.on{opacity:1;pointer-events:all}
-  .ov-icon{font-size:38px;margin-bottom:12px}
-  .ov-title{font-size:16px;font-weight:700;margin-bottom:6px}
-  .ov-msg{font-size:13px;color:var(--gray-2);line-height:1.5}
+  .ov-icon{font-size:40px;margin-bottom:12px}
+  .ov-title{font-size:17px;font-weight:700;margin-bottom:8px}
+  .ov-msg{font-size:14px;color:var(--gray-2);line-height:1.6}
+  .ov-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:14px}
+  .ov-badge{font-size:12px;padding:4px 10px;background:rgba(255,255,255,.06);border-radius:20px;color:var(--gray-2)}
   .spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.1);border-top-color:var(--amber);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
   @keyframes spin{to{transform:rotate(360deg)}}
+  .ov-progress{margin-top:12px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+  .ov-progress-bar{height:100%;background:var(--amber);border-radius:2px;transition:width .4s ease;width:0}
 
   /* RESULTS PANEL */
   .panel{position:absolute;bottom:0;left:0;right:0;z-index:900;background:var(--navy);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -8px 32px rgba(0,0,0,.4);transition:height .3s cubic-bezier(.4,0,.2,1);height:0;overflow:hidden;display:flex;flex-direction:column}
@@ -76,85 +84,116 @@
   .panel-title-row{display:flex;align-items:center;justify-content:space-between;padding:0 16px 8px;flex-shrink:0}
   .panel-title{font-size:15px;font-weight:700}
   .panel-sub{font-size:12px;color:var(--gray-2);margin-top:2px}
-  .sort-btn{font-size:12px;color:var(--amber);background:rgba(245,166,35,.1);border:none;border-radius:6px;padding:4px 8px;cursor:pointer}
+  .panel-actions{display:flex;gap:6px;align-items:center}
+  .sort-btn,.bm-filter-btn{font-size:12px;color:var(--amber);background:rgba(245,166,35,.1);border:none;border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+  .bm-filter-btn.active{background:rgba(245,166,35,.25)}
   .results-list{overflow-y:auto;flex:1;padding:0 12px 32px}
 
   /* TRIAL CARD */
   .card{background:var(--navy-mid);border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,transform .1s;position:relative;overflow:hidden}
   .card:active{transform:scale(.99)}
   .card.hl{border-color:var(--amber)}
+  .card.bookmarked{border-color:rgba(245,166,35,.4)}
   .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal);border-radius:3px 0 0 3px}
   .card.p3::before{background:var(--amber)}
   .card.p1::before{background:var(--gray-2)}
   .card.p4::before{background:var(--success)}
-  .card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+  .card-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px}
   .pbadge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
-  .pbadge.b1{background:rgba(176,190,197,.15);color:var(--gray-2)}
-  .pbadge.b2{background:rgba(46,196,182,.15);color:var(--teal)}
+  .pbadge.b1{background:rgba(168,185,201,.15);color:var(--gray-2)}
+  .pbadge.b2{background:rgba(0,186,200,.15);color:var(--teal)}
   .pbadge.b3{background:rgba(245,166,35,.15);color:var(--amber)}
-  .pbadge.b4{background:rgba(52,201,138,.15);color:var(--success)}
-  .pbadge.bna{background:rgba(176,190,197,.1);color:var(--gray-3)}
-  .card-title{font-size:13px;font-weight:600;line-height:1.4;color:var(--white);flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pbadge.b4{background:rgba(45,220,141,.15);color:var(--success)}
+  .pbadge.bna{background:rgba(168,185,201,.1);color:var(--gray-3)}
+  .card-title{font-size:14px;font-weight:600;line-height:1.4;color:var(--white);flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .card-org{font-size:12px;color:var(--gray-2);margin-bottom:6px;display:flex;align-items:center;gap:5px}
-  .card-loc{font-size:12px;color:var(--teal);display:flex;align-items:center;gap:5px;margin-bottom:8px}
-  .card-foot{display:flex;align-items:center;justify-content:space-between}
-  .dist-tag{font-size:12px;font-weight:700;color:var(--amber)}
-  .view-btn{font-size:12px;font-weight:600;color:var(--navy);background:var(--amber);border:none;border-radius:8px;padding:6px 14px;cursor:pointer}
+  .card-loc{font-size:12px;color:var(--teal);display:flex;align-items:center;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+  .card-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .dist-tag{font-size:12px;font-weight:700;color:var(--amber);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .view-btn{font-size:12px;font-weight:600;color:var(--navy);background:var(--amber);border:none;border-radius:8px;padding:6px 14px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .bm-star{background:none;border:none;color:var(--gray-3);cursor:pointer;padding:6px 4px;font-size:16px;flex-shrink:0;line-height:1;transition:color .15s}
+  .bm-star.on{color:var(--amber)}
+  .remote-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:var(--purple-soft);color:var(--purple);display:inline-block;margin-left:4px;vertical-align:middle}
 
   /* DETAIL SHEET */
   .detail{position:fixed;bottom:0;left:0;right:0;z-index:2000;background:var(--navy);border-radius:20px 20px 0 0;border-top:1px solid rgba(255,255,255,.08);box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);height:92dvh;display:flex;flex-direction:column;overflow:hidden}
   .detail.open{transform:translateY(0)}
   .d-fixed{flex:0 0 auto;background:var(--navy);border-radius:20px 20px 0 0}
-  .d-header{padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .d-back{background:none;border:none;color:var(--amber);font-size:14px;font-weight:700;cursor:pointer;padding:10px 6px;min-height:44px;display:flex;align-items:center}
-  .d-close{width:36px;height:36px;min-width:36px;background:rgba(255,255,255,.08);border:none;border-radius:50%;color:var(--white);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .d-header{padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .d-back{background:none;border:none;color:var(--amber);font-size:14px;font-weight:700;cursor:pointer;padding:10px 6px;min-height:44px;display:flex;align-items:center;white-space:nowrap}
+  .d-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
+  .d-icon-btn{width:34px;height:34px;background:rgba(255,255,255,.07);border:none;border-radius:9px;color:var(--gray-2);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .15s,background .15s;flex-shrink:0}
+  .d-icon-btn.bm-on{color:var(--amber);background:rgba(245,166,35,.12)}
+  .d-home{background:none;border:none;color:var(--gray-3);font-size:18px;cursor:pointer;padding:6px;display:flex;align-items:center}
+  .d-close{width:34px;height:34px;min-width:34px;background:rgba(255,255,255,.08);border:none;border-radius:50%;color:var(--white);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .d-nav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
   .d-nav-btn{background:rgba(255,255,255,.08);border:none;color:var(--white);font-size:13px;font-weight:600;padding:8px 16px;border-radius:var(--rs);cursor:pointer;min-height:36px}
   .d-nav-btn:disabled{opacity:.3;cursor:not-allowed}
   .d-nav-pos{font-size:12px;color:var(--gray-2)}
+  /* TABS */
+  .d-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.06);padding:0 16px}
+  .d-tab{flex:1;padding:11px 8px;background:none;border:none;color:var(--gray-2);font-size:13px;font-weight:600;cursor:pointer;position:relative;transition:color .15s;text-align:center}
+  .d-tab.active{color:var(--amber)}
+  .d-tab.active::after{content:'';position:absolute;bottom:0;left:16px;right:16px;height:2px;background:var(--amber);border-radius:2px 2px 0 0}
   .d-scroll{flex:1 1 0;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .d-body{padding:16px}
-  .d-title{font-size:16px;font-weight:700;line-height:1.4;margin-bottom:16px}
+
+  /* DETAIL CONTENT */
+  .d-title{font-size:17px;font-weight:700;line-height:1.4;margin-bottom:16px}
   .d-sec{margin-bottom:18px}
   .d-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-2);margin-bottom:8px}
-  .d-val{font-size:13px;color:var(--white);line-height:1.7}
+  .d-val{font-size:14px;color:var(--white);line-height:1.7}
+  .nct-id{font-size:11px;color:var(--gray-3);font-family:monospace;margin-bottom:10px}
 
-  /* ELIGIBILITY */
+  /* WHO CAN JOIN BOX */
+  .elig-who{background:var(--navy-mid);border-radius:var(--rs);padding:14px;border:1px solid rgba(255,255,255,.07);margin-bottom:14px}
+  .elig-who-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray-2);margin-bottom:10px}
+  .elig-tags{display:flex;flex-wrap:wrap;gap:8px}
+  .elig-tag{background:rgba(255,255,255,.05);border-radius:8px;padding:7px 11px;display:flex;flex-direction:column;gap:2px}
+  .elig-tag-lbl{font-size:10px;color:var(--gray-3)}
+  .elig-tag-val{font-size:13px;font-weight:600;color:var(--white)}
+  .elig-tag-val.yes{color:var(--success)}
+  .elig-tag-val.no{color:var(--danger)}
+
+  /* ELIGIBILITY CRITERIA (parsed bullets) */
   .elig-block{background:var(--navy-mid);border-radius:var(--rs);padding:12px 14px;border:1px solid rgba(255,255,255,.06);margin-bottom:10px}
   .elig-head{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
   .elig-head.inc{color:var(--success)}
   .elig-head.exc{color:var(--danger)}
-  .elig-item{font-size:12px;color:var(--gray-2);line-height:1.6;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:8px}
+  .elig-item{font-size:13px;color:var(--gray-2);line-height:1.6;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:8px}
   .elig-item:last-child{border-bottom:none}
-  .elig-dot{flex-shrink:0;margin-top:5px;width:5px;height:5px;border-radius:50%}
+  .elig-dot{flex-shrink:0;margin-top:8px;width:5px;height:5px;border-radius:50%}
   .elig-dot.i{background:var(--success)}
   .elig-dot.e{background:var(--danger)}
 
+  /* FULL ELIGIBILITY TEXT (pre-formatted, as on ClinicalTrials.gov) */
+  .elig-full{background:var(--navy-mid);border-radius:var(--rs);padding:14px;border:1px solid rgba(255,255,255,.06);font-size:13px;color:var(--gray-1);line-height:1.9;white-space:pre-wrap;font-family:inherit;word-break:break-word}
+
   /* CONTACTS */
   .contact-card{background:var(--navy-mid);border-radius:var(--rs);padding:12px 14px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px}
-  .contact-name{font-size:13px;font-weight:600;margin-bottom:6px}
+  .contact-name{font-size:14px;font-weight:600;margin-bottom:4px}
   .contact-role{font-size:11px;color:var(--gray-3);margin-bottom:8px}
   .contact-links{display:flex;flex-direction:column;gap:8px}
   .contact-btn{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--rs);text-decoration:none;font-size:13px;font-weight:600;border:none;cursor:pointer;width:100%;text-align:left}
-  .contact-btn.phone{background:rgba(52,201,138,.12);color:var(--success);border:1px solid rgba(52,201,138,.25)}
-  .contact-btn.email{background:rgba(46,196,182,.12);color:var(--teal);border:1px solid rgba(46,196,182,.25)}
+  .contact-btn.phone{background:rgba(45,220,141,.12);color:var(--success);border:1px solid rgba(45,220,141,.25)}
+  .contact-btn.email{background:rgba(0,186,200,.12);color:var(--teal);border:1px solid rgba(0,186,200,.25)}
   .contact-btn-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-  .contact-btn.phone .contact-btn-icon{background:rgba(52,201,138,.2)}
-  .contact-btn.email .contact-btn-icon{background:rgba(46,196,182,.2)}
+  .contact-btn.phone .contact-btn-icon{background:rgba(45,220,141,.2)}
+  .contact-btn.email .contact-btn-icon{background:rgba(0,186,200,.2)}
   .contact-btn-text{flex:1}
   .contact-btn-label{font-size:10px;font-weight:400;opacity:.7;display:block;margin-bottom:1px}
   .contact-btn-value{font-size:13px;font-weight:600}
 
-  /* LOCATION LIST */
+  /* LOCATION */
   .loc-item{background:var(--navy-mid);border-radius:var(--rs);padding:10px 12px;border:1px solid rgba(255,255,255,.06);margin-bottom:8px}
-  .loc-name{font-size:13px;font-weight:600;margin-bottom:3px}
-  .loc-city{font-size:12px;color:var(--gray-2)}
+  .loc-name{font-size:14px;font-weight:600;margin-bottom:3px}
+  .loc-city{font-size:13px;color:var(--gray-2)}
   .loc-status{font-size:11px;color:var(--success);margin-top:4px}
   .loc-dist{font-size:12px;color:var(--amber);font-weight:700;margin-top:4px}
 
   /* CONDITION CHIPS */
   .cond-wrap{display:flex;flex-wrap:wrap;gap:6px}
-  .cond-chip{font-size:12px;padding:4px 10px;background:rgba(46,196,182,.12);color:var(--teal);border-radius:20px}
+  .cond-chip{font-size:12px;padding:4px 10px;background:var(--teal-soft);color:var(--teal);border-radius:20px}
 
   /* META PILLS */
   .meta-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
@@ -162,14 +201,24 @@
 
   /* CTA */
   .d-cta{display:block;background:var(--amber);color:var(--navy);text-align:center;font-size:14px;font-weight:700;padding:14px;border-radius:var(--r);text-decoration:none;margin-top:20px}
-  .d-disclaimer{text-align:center;font-size:11px;color:var(--gray-3);margin-top:12px;line-height:1.6}
-  .nct-id{font-size:11px;color:var(--gray-3);font-family:monospace;margin-bottom:10px}
+  .d-disclaimer{text-align:center;font-size:11px;color:var(--gray-3);margin-top:10px;line-height:1.6;padding-bottom:8px}
+
+  /* TRUST FOOTER */
+  .d-trust{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;padding:12px 0 4px;border-top:1px solid rgba(255,255,255,.05);margin-top:16px}
+  .d-trust-item{font-size:10px;color:var(--gray-3)}
+
+  /* TAB LINK */
+  .tab-link{color:var(--amber);cursor:pointer;font-size:12px;font-weight:600;margin-top:8px;display:inline-block}
 
   /* SUGGESTIONS */
   .sugg{position:absolute;top:42px;left:0;right:0;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-top:none;border-radius:0 0 var(--rs) var(--rs);z-index:2000;overflow:hidden;display:none}
   .sugg-item{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:8px}
   .sugg-item:last-child{border-bottom:none}
   .sugg-dot{width:6px;height:6px;background:var(--amber);border-radius:50%;flex-shrink:0}
+
+  /* TOAST */
+  .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--navy-light);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;color:var(--white);z-index:9999;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* DISCLAIMER MODAL */
   .disc-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:flex;align-items:flex-end;justify-content:center;padding:0}
@@ -184,15 +233,13 @@
   .disc-divider{height:1px;background:rgba(255,255,255,.07);margin:16px 0}
   .disc-agree{width:100%;background:var(--amber);color:var(--navy);border:none;border-radius:14px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
   .disc-remind{display:block;text-align:center;font-size:12px;color:var(--gray-3);margin-top:12px;cursor:pointer;background:none;border:none;width:100%}
-  /* INFO BUTTON */
-  .info-btn{width:34px;height:34px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;font-weight:700;color:var(--gray-2)}
 
   /* LEAFLET */
-  .leaflet-container{background:#162030!important}
+  .leaflet-container{background:#0D1E30!important}
   .leaflet-tile{filter:brightness(.82) saturate(.65) hue-rotate(200deg)}
   .leaflet-control-zoom{border:1px solid rgba(255,255,255,.1)!important;border-radius:10px!important;overflow:hidden}
   .leaflet-control-zoom a{background:var(--navy-mid)!important;color:var(--white)!important;border-color:rgba(255,255,255,.1)!important}
-  .leaflet-control-attribution{background:rgba(13,27,42,.8)!important;color:var(--gray-3)!important;font-size:9px!important}
+  .leaflet-control-attribution{background:rgba(11,23,36,.8)!important;color:var(--gray-3)!important;font-size:9px!important}
   .leaflet-control-attribution a{color:var(--gray-3)!important}
   .leaflet-popup-content-wrapper{background:var(--navy-mid)!important;color:var(--white)!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:12px!important;box-shadow:0 4px 24px rgba(0,0,0,.4)!important}
   .leaflet-popup-tip{background:var(--navy-mid)!important}
@@ -210,11 +257,11 @@
 <div class="header">
   <div class="header-top">
     <div class="logo">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D1B2A" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a7 7 0 0 1 7 7c0 4-7 13-7 13S5 13 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5" fill="#0D1B2A"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B1724" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a7 7 0 0 1 7 7c0 4-7 13-7 13S5 13 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5" fill="#0B1724"/></svg>
     </div>
     <div class="brand">
       <div class="brand-name">ClinicalTrials Finder</div>
-      <div class="brand-sub">Active recruiting studies · ClinicalTrials.gov</div>
+      <div class="brand-sub">Live recruiting studies · ClinicalTrials.gov</div>
     </div>
     <button class="loc-btn" onclick="getUserLocation()" title="Use my location">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
@@ -224,7 +271,7 @@
   <div class="search-row">
     <div class="search-wrap">
       <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="sInput" class="s-input" type="text" placeholder="e.g. Parkinson disease, diabetes, lupus…"
+      <input id="sInput" class="s-input" type="text" placeholder="Condition — Parkinson, diabetes, lupus, breast cancer…"
         autocomplete="off" autocorrect="off" spellcheck="false"
         onkeydown="if(event.key==='Enter'){doSearch();this.blur()}"
         oninput="onInput(this.value)"/>
@@ -238,9 +285,9 @@
   <div class="search-row" style="margin-top:7px;gap:8px">
     <div class="search-wrap">
       <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-      <input id="sKeyword" class="s-input" type="text" placeholder="Keyword (optional) — e.g. stem cell, UC Irvine, levodopa, Dr. Smith"
+      <input id="sKeyword" class="s-input" type="text" placeholder="Keyword (optional) — stem cell, UC Irvine, levodopa, Dr. Smith…"
         autocomplete="off" autocorrect="off" spellcheck="false"
-        style="font-size:12px;color:var(--gray-2)"
+        style="font-size:13px;color:var(--gray-2)"
         onkeydown="if(event.key==='Enter'){doSearch();this.blur()}"/>
     </div>
     <select class="d-sel" id="distSel" onchange="applyFilters()" title="Search radius">
@@ -251,7 +298,7 @@
       <option value="100">100 mi</option>
       <option value="250">250 mi</option>
       <option value="500">500 mi</option>
-      <option value="99999">No distance limit</option>
+      <option value="99999">No limit</option>
     </select>
   </div>
 </div>
@@ -261,6 +308,7 @@
   <button class="chip" id="chip-1" onclick="setPhase('1')">Phase 1</button>
   <button class="chip" id="chip-2" onclick="setPhase('2')">Phase 2</button>
   <button class="chip" id="chip-3" onclick="setPhase('3')">Phase 3</button>
+  <button class="chip remote-chip" id="chip-remote" onclick="toggleRemote()" title="Show remote/virtual trials regardless of distance">🌐 Remote</button>
   <span class="res-count" id="resCount"></span>
 </div>
 
@@ -269,13 +317,20 @@
 
   <div class="overlay on" id="ovEmpty">
     <div class="ov-icon">🔬</div>
-    <div class="ov-title">Find Active Clinical Trials</div>
-    <div class="ov-msg">Enter a condition above to find actively recruiting studies plotted on the map.</div>
+    <div class="ov-title">Find Clinical Trials Near You</div>
+    <div class="ov-msg">Search thousands of actively recruiting studies. Enter a condition above to get started.</div>
+    <div class="ov-badges">
+      <span class="ov-badge">🌍 Worldwide</span>
+      <span class="ov-badge">📍 Distance-ranked</span>
+      <span class="ov-badge">🔄 Live data</span>
+      <span class="ov-badge">🆓 Free · No ads</span>
+    </div>
   </div>
   <div class="overlay" id="ovLoad">
     <div class="spinner"></div>
     <div class="ov-title">Searching trials…</div>
     <div class="ov-msg" id="loadMsg">Querying ClinicalTrials.gov</div>
+    <div class="ov-progress"><div class="ov-progress-bar" id="progBar"></div></div>
   </div>
   <div class="overlay" id="ovNone">
     <div class="ov-icon">📭</div>
@@ -291,7 +346,10 @@
         <div class="panel-title" id="pTitle">Results</div>
         <div class="panel-sub" id="pSub"></div>
       </div>
-      <button class="sort-btn" onclick="toggleSort()">⇅ <span id="sortLbl">Nearest</span></button>
+      <div class="panel-actions">
+        <button class="bm-filter-btn" id="bmFilterBtn" onclick="toggleBookmarkFilter()" title="Show saved trials">☆ Saved</button>
+        <button class="sort-btn" onclick="toggleSort()">⇅ <span id="sortLbl">Nearest</span></button>
+      </div>
     </div>
     <div class="results-list" id="resList"></div>
   </div>
@@ -301,18 +359,31 @@
     <div class="d-fixed">
       <div class="d-header">
         <button class="d-back" onclick="event.stopPropagation();backToResults()">← Back to list</button>
-        <button class="d-back" onclick="event.stopPropagation();newSearch()" style="color:var(--gray-2)">⌂ New search</button>
-        <button class="d-close" onclick="event.stopPropagation();closeDetail()">✕</button>
+        <div class="d-actions">
+          <button class="d-icon-btn" id="dBmBtn" onclick="event.stopPropagation();toggleDetailBookmark()" title="Save trial">☆</button>
+          <button class="d-icon-btn" onclick="event.stopPropagation();shareCurrentTrial()" title="Share this trial">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
+          <button class="d-home" onclick="event.stopPropagation();newSearch()" title="New search">⌂</button>
+          <button class="d-close" onclick="event.stopPropagation();closeDetail()">✕</button>
+        </div>
       </div>
       <div class="d-nav" id="dNav">
         <button class="d-nav-btn" id="dPrev" onclick="event.stopPropagation();navigateDetail(-1)">‹ Prev</button>
         <span class="d-nav-pos" id="dPos"></span>
         <button class="d-nav-btn" id="dNext" onclick="event.stopPropagation();navigateDetail(1)">Next ›</button>
       </div>
+      <div class="d-tabs">
+        <button class="d-tab active" id="tabOverview" onclick="event.stopPropagation();switchTab('overview')">Overview</button>
+        <button class="d-tab" id="tabFull" onclick="event.stopPropagation();switchTab('full')">Full Details</button>
+      </div>
     </div>
     <div class="d-scroll"><div class="d-body" id="dBody"></div></div>
   </div>
 </div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
 <!-- DISCLAIMER MODAL -->
 <div class="disc-backdrop hidden" id="discBackdrop">
@@ -322,40 +393,25 @@
     </div>
     <div class="disc-title">Medical Disclaimer</div>
     <div class="disc-version">ClinicalTrials Finder · For Informational Use Only</div>
-
     <div class="disc-section">
       <div class="disc-section-title">Not Medical Advice</div>
-      <div class="disc-text">This app is provided for informational purposes only and does not constitute medical advice, diagnosis, or treatment. The information presented should never be used as a substitute for professional medical advice from a qualified healthcare provider.</div>
+      <div class="disc-text">This app is provided for informational purposes only and does not constitute medical advice, diagnosis, or treatment. The information presented should never substitute for professional medical advice from a qualified healthcare provider.</div>
     </div>
-
     <div class="disc-divider"></div>
-
     <div class="disc-section">
       <div class="disc-section-title">Clinical Trial Information</div>
-      <div class="disc-text">Trial data is retrieved in real time from ClinicalTrials.gov, a registry maintained by the U.S. National Library of Medicine. Eligibility criteria shown in this app are summarized and may be incomplete. Always review the full trial listing and consult the study team directly before making any enrollment decisions.</div>
+      <div class="disc-text">Trial data is retrieved in real time from ClinicalTrials.gov, a registry maintained by the U.S. National Library of Medicine. Eligibility criteria shown may be summarized. Always review the full trial listing and consult the study team before making enrollment decisions.</div>
     </div>
-
     <div class="disc-divider"></div>
-
     <div class="disc-section">
       <div class="disc-section-title">Consult Your Physician</div>
-      <div class="disc-text">Participation in any clinical trial should only be considered after a thorough discussion with your treating physician or specialist. Your physician can help evaluate whether a specific trial is appropriate given your complete medical history, current medications, and overall health status.</div>
+      <div class="disc-text">Participation in any clinical trial should only be considered after a thorough discussion with your treating physician or specialist, who can evaluate whether a specific trial is appropriate given your complete medical history, medications, and health status.</div>
     </div>
-
     <div class="disc-divider"></div>
-
-    <div class="disc-section">
-      <div class="disc-section-title">No Liability</div>
-      <div class="disc-text">The developers of this application make no representations or warranties regarding the accuracy, completeness, or timeliness of the information provided. Use of this app is at your own discretion and risk. The developers are not liable for any decisions made based on information obtained through this app.</div>
-    </div>
-
-    <div class="disc-divider"></div>
-
     <div class="disc-section">
       <div class="disc-section-title">Privacy</div>
       <div class="disc-text">This app does not collect, store, or transmit any personal health information. Location data, if shared, is used solely to calculate distances to trial sites and is never recorded or sent to any server.</div>
     </div>
-
     <button class="disc-agree" onclick="acceptDisclaimer()">I Understand — Continue to App</button>
     <button class="disc-remind" onclick="closeDisclaimer()">Remind me later</button>
   </div>
@@ -367,10 +423,29 @@ let map, markers, userMarker, userLL = null;
 let allTrials = [], filtered = [], phaseF = 'all', sortNearest = true;
 let panelSt = 0;
 const GEO_CACHE = {};
+let detailTab = 'overview';
+const bookmarks = new Set();
+let showBookmarksOnly = false;
+let remoteOnly = false;
+let useMetric = false;
+let userCountry = '';
+let currentDetailIndex = 0;
+let returningToList = false;
+
 const PRESET_MSG = (trialTitle, nctId) =>
   `Dear Research Team,\n\nI am writing to express my interest in participating in the following clinical trial:\n\n"${trialTitle}" (${nctId})\n\nAfter reviewing the currently listed inclusion and exclusion criteria, I believe I may qualify for this study. I would appreciate the opportunity to learn more about the enrollment process and next steps.\n\nThank you for your time and consideration.\n\nSincerely,\n[Your Name]\n[Your Phone Number]`;
 
-const SUGGESTIONS = ["Parkinson disease","Alzheimer disease","Type 2 diabetes","Breast cancer","Lung cancer","Multiple sclerosis","Rheumatoid arthritis","Crohn disease","Heart failure","Hypertension","Depression","Anxiety disorder","Autism","Lupus","Asthma","HIV","Stroke","Prostate cancer","Melanoma","COPD","Kidney disease","Atrial fibrillation","Epilepsy","Osteoporosis","Schizophrenia","Ovarian cancer","Colorectal cancer","ALS","Fibromyalgia"];
+const SUGGESTIONS = [
+  "Parkinson disease","Alzheimer disease","Multiple sclerosis","ALS (amyotrophic lateral sclerosis)","Essential tremor",
+  "Huntington disease","Myasthenia gravis","Peripheral neuropathy","Epilepsy","Migraine",
+  "Type 1 diabetes","Type 2 diabetes","Obesity","Metabolic syndrome",
+  "Breast cancer","Lung cancer","Prostate cancer","Ovarian cancer","Colorectal cancer","Melanoma","Lymphoma","Leukemia","Glioblastoma",
+  "Heart failure","Atrial fibrillation","Hypertension","Coronary artery disease",
+  "Rheumatoid arthritis","Lupus","Inflammatory bowel disease","Crohn disease","Ulcerative colitis","Psoriasis",
+  "Depression","Anxiety disorder","Schizophrenia","Bipolar disorder","PTSD","Autism spectrum disorder","ADHD",
+  "Asthma","COPD","Pulmonary fibrosis",
+  "Chronic kidney disease","HIV","Hepatitis C","COVID-19 long haul","Fibromyalgia","Osteoporosis"
+];
 
 // ── MAP ──
 function initMap() {
@@ -387,19 +462,16 @@ function getUserLocation() {
   navigator.geolocation.getCurrentPosition(async pos=>{
     userLL=[pos.coords.latitude,pos.coords.longitude];
     if(userMarker)map.removeLayer(userMarker);
-    const ic=L.divIcon({html:`<div style="width:14px;height:14px;background:#2EC4B6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(46,196,182,.25)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:''});
-    userMarker=L.marker(userLL,{icon:ic}).addTo(map).bindPopup('<div style="font-size:12px;color:#2EC4B6;font-weight:700">📍 Your Location</div>');
+    const ic=L.divIcon({html:`<div style="width:14px;height:14px;background:#00BAC8;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(0,186,200,.25)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:''});
+    userMarker=L.marker(userLL,{icon:ic}).addTo(map).bindPopup('<div style="font-size:12px;color:#00BAC8;font-weight:700">📍 Your Location</div>');
     map.setView(userLL,9);
-    // Detect country for metric/imperial switch
     try{
       const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userLL[0]}&lon=${userLL[1]}&format=json`,{headers:{'Accept-Language':'en','User-Agent':'ClinicalTrialsFinder/1.0'}});
       const d=await r.json();
       const country=d?.address?.country||'';
       if(country)setMetricFromCountry(country);
     }catch(e){}
-  },()=>{
-    // Location denied or unavailable — app works fine without it, no alert needed
-  });
+  },()=>{});
 }
 
 // ── SUGGESTIONS ──
@@ -408,7 +480,7 @@ function onInput(v) {
   if(!v||v.length<2){b.style.display='none';return}
   const m=SUGGESTIONS.filter(s=>s.toLowerCase().includes(v.toLowerCase())).slice(0,6);
   if(!m.length){b.style.display='none';return}
-  b.innerHTML=m.map(s=>`<div class="sugg-item" onclick="pickSugg('${s}')"><div class="sugg-dot"></div>${s}</div>`).join('');
+  b.innerHTML=m.map(s=>`<div class="sugg-item" onclick="pickSugg('${s.replace(/'/g,"\\'")}')"><div class="sugg-dot"></div>${s}</div>`).join('');
   b.style.display='block';
 }
 function pickSugg(v){document.getElementById('sInput').value=v;document.getElementById('sugg').style.display='none';doSearch()}
@@ -429,8 +501,6 @@ async function geocode(city,state,country) {
 }
 
 // ── DISTANCE ──
-let useMetric=false;
-let userCountry='';
 function haversine(a,b){
   const R=useMetric?6371:3958.8;
   const dLat=(b[0]-a[0])*Math.PI/180,dLon=(b[1]-a[1])*Math.PI/180;
@@ -439,7 +509,6 @@ function haversine(a,b){
 }
 function distUnit(){return useMetric?'km':'mi'}
 function setMetricFromCountry(country){
-  // Only US uses miles by default; UK uses miles on roads too
   const milesCountries=['United States','United Kingdom'];
   useMetric=!milesCountries.includes(country);
   userCountry=country;
@@ -450,32 +519,41 @@ function updateDistDropdown(){
   const sel=document.getElementById('distSel');
   if(!sel)return;
   const vals=useMetric
-    ?[[10,'10 '+u],[25,'25 '+u],[50,'50 '+u],[100,'100 '+u],[250,'250 '+u],[500,'500 '+u],[99999,'No distance limit']]
-    :[[5,'5 '+u],[10,'10 '+u],[25,'25 '+u],[50,'50 '+u],[100,'100 '+u],[250,'250 '+u],[500,'500 '+u],[99999,'No distance limit']];
+    ?[[10,'10 '+u],[25,'25 '+u],[50,'50 '+u],[100,'100 '+u],[250,'250 '+u],[500,'500 '+u],[99999,'No limit']]
+    :[[5,'5 '+u],[10,'10 '+u],[25,'25 '+u],[50,'50 '+u],[100,'100 '+u],[250,'250 '+u],[500,'500 '+u],[99999,'No limit']];
   const cur=sel.value;
   sel.innerHTML=vals.map(([v,l])=>`<option value="${v}"${String(v)===cur?' selected':''}>${l}</option>`).join('');
+}
+
+// ── VIRTUAL DETECTION ──
+function isVirtualTrial(t){
+  const text=[t.eligibility?.raw||'',t.facility||'',t.city||'',t.summary||''].join(' ').toLowerCase();
+  return /\b(telemedicine|telehealth|remote visit|virtual visit|home[- ]based|decentralized|video visit|online study|remote participation)\b/.test(text);
 }
 
 // ── PARSE ELIGIBILITY ──
 function parseEligibility(raw) {
   if(!raw)return{inc:[],exc:[],raw:''};
-  // Split on common patterns: "Inclusion Criteria:" / "Exclusion Criteria:"
   const incMatch=raw.match(/inclusion criteria[:\s]*([\s\S]*?)(?=exclusion criteria|$)/i);
   const excMatch=raw.match(/exclusion criteria[:\s]*([\s\S]*?)$/i);
-
   function splitCriteria(text){
     if(!text)return[];
-    // Split on numbered items (1., 2., 1), •, -, *)
     return text.split(/\n+/)
       .map(l=>l.replace(/^[\d\-\*\•\·\–]+[\.\)]\s*/,'').trim())
       .filter(l=>l.length>10&&!/^(inclusion|exclusion)/i.test(l))
-      .slice(0,12); // max 12 per section
+      .slice(0,15);
   }
   return{
     inc:splitCriteria(incMatch?incMatch[1]:''),
     exc:splitCriteria(excMatch?excMatch[1]:''),
     raw
   };
+}
+
+// ── PROGRESS ──
+function setProgress(pct){
+  const b=document.getElementById('progBar');
+  if(b)b.style.width=pct+'%';
 }
 
 // ── SEARCH ──
@@ -485,25 +563,21 @@ async function doSearch() {
   const keyword=(document.getElementById('sKeyword')?.value||'').trim();
   document.getElementById('sugg').style.display='none';
 
-  // Track search event in Google Analytics
   if(typeof gtag!=='undefined'){
-    gtag('event','search',{search_term:cond+(keyword?` | site/PI: ${keyword}`:'')});
+    gtag('event','search',{search_term:cond+(keyword?` | kw: ${keyword}`:'')});
   }
 
   showOv('load');
   setPanel(0);
   markers.clearLayers();
   allTrials=[];filtered=[];
-  // Reset sort and phase filter on every new search
   sortNearest=true;
   document.getElementById('sortLbl').textContent='Nearest';
   phaseF='all';
   ['all','1','2','3'].forEach(x=>{const el=document.getElementById(`chip-${x}`);if(el)el.classList.toggle('active',x==='all');});
+  setProgress(5);
 
   try{
-    // KEY FIX #1: Remove `fields=` parameter — it was silently dropping location data
-    // KEY FIX #2: Increase pageSize to 1000 (max) to capture all UC and other sites
-    // KEY FIX #3: Use pagination via nextPageToken to get all results
     let allStudies=[];
     let nextToken=null;
     let page=0;
@@ -521,8 +595,8 @@ async function doSearch() {
       allStudies=allStudies.concat(data.studies||[]);
       nextToken=data.nextPageToken||null;
       page++;
-      document.getElementById('loadMsg').textContent=`Found ${allStudies.length} studies… geocoding locations`;
-      // Stop after 5 pages (1000 trials) to keep it fast
+      setProgress(Math.min(45, 10 + page*10));
+      document.getElementById('loadMsg').textContent=`Found ${allStudies.length} studies… processing`;
       if(page>=5)break;
     } while(nextToken);
 
@@ -532,13 +606,6 @@ async function doSearch() {
       return;
     }
 
-    // Filter for relevance: only keep studies where the condition/title/keywords
-    // actually relate to the search — eliminates trials that merely mention
-    // the condition in exclusion criteria (e.g. pembrolizumab cancer trials)
-    // Skip this filter if a keyword was provided — the API already filtered via
-    // query.term, and the keyword may only appear in the protocol body (not in
-    // conditions/title), so filtering here would wrongly drop valid results
-    // (e.g. "stem cell" finding bemdaneprocel).
     if(!keyword){
       const condWords=cond.toLowerCase().split(/\s+/).filter(w=>w.length>2);
       allStudies=allStudies.filter(study=>{
@@ -558,7 +625,7 @@ async function doSearch() {
       return;
     }
 
-    // Extract trials — all countries
+    setProgress(50);
     const raw=[];
     for(const study of allStudies){
       const m=study.protocolSection;
@@ -580,6 +647,8 @@ async function doSearch() {
       const sex=m.eligibilityModule?.sex||'';
       const minAge=m.eligibilityModule?.minimumAge||'';
       const maxAge=m.eligibilityModule?.maximumAge||'';
+      const hvRaw=m.eligibilityModule?.healthyVolunteers;
+      const healthyVolunteers=hvRaw===true||hvRaw==='YES'?true:hvRaw===false||hvRaw==='NO'?false:null;
 
       const clm=m.contactsLocationsModule||{};
       const centralContacts=(clm.centralContacts||[]).map(c=>({
@@ -599,14 +668,15 @@ async function doSearch() {
         const gLon=loc.geoPoint?.lon;
         raw.push({
           id,title,phase,sponsor,status,summary,enrollment,
-          startDate,endDate,conditions,eligibility,sex,minAge,maxAge,
+          startDate,endDate,conditions,eligibility,sex,minAge,maxAge,healthyVolunteers,
           contacts:uniqContacts,
           city:loc.city||'',state:loc.state||'',country:loc.country||'',
           facility:loc.facility||'',
           locStatus:loc.status||'',
           zip:loc.zip||'',
           latlng:(gLat&&gLon)?[parseFloat(gLat),parseFloat(gLon)]:null,
-          distance:null
+          distance:null,
+          isVirtual:false
         });
       }
     }
@@ -617,7 +687,7 @@ async function doSearch() {
       return;
     }
 
-    // Only geocode the small fraction of locations missing geoPoint (<10% typically)
+    setProgress(60);
     const needGeo=raw.filter(t=>!t.latlng&&t.city);
     const uniq={};
     for(const t of needGeo){const k=`${t.city}|${t.state}|${t.country}`;if(!(k in uniq))uniq[k]=null}
@@ -630,21 +700,24 @@ async function doSearch() {
         const batch=keys.slice(i,i+POOL);
         const results=await Promise.all(batch.map(k=>{const[city,state,country]=k.split('|');return geocode(city,state,country)}));
         batch.forEach((k,j)=>{uniq[k]=results[j]});
-        document.getElementById('loadMsg').textContent=`Geocoding locations… ${Math.min(i+POOL,keys.length)}/${keys.length}`;
+        setProgress(60+Math.round((i/keys.length)*30));
+        document.getElementById('loadMsg').textContent=`Geocoding… ${Math.min(i+POOL,keys.length)}/${keys.length}`;
         if(i+POOL<keys.length)await new Promise(r=>setTimeout(r,250));
       }
       for(const t of needGeo){const k=`${t.city}|${t.state}|${t.country}`;t.latlng=uniq[k]||null}
     }
 
-    // Assign distances + deduplicate
     for(const t of raw){
       if(t.latlng&&userLL)t.distance=haversine(userLL,t.latlng);
       t._dk=`${t.id}_${t.facility}_${t.city}`;
+      t.isVirtual=isVirtualTrial(t);
     }
     const seen2=new Set();
     allTrials=raw.filter(t=>{if(!t.latlng)return false;if(seen2.has(t._dk))return false;seen2.add(t._dk);return true});
 
+    setProgress(100);
     document.getElementById('filterRow').style.display='flex';
+    updateHash();
     applyFilters();
 
   }catch(err){
@@ -656,12 +729,14 @@ async function doSearch() {
 
 // ── FILTERS ──
 function applyFilters(){
-  if(!allTrials.length)return; // no search done yet — don't show any error
+  if(!allTrials.length)return;
   const maxD=parseFloat(document.getElementById('distSel').value);
   filtered=allTrials.filter(t=>{
-    const dOk=!userLL||t.distance==null||t.distance<=maxD;
+    // Include if: no user location, or within distance, or virtual trial when remoteOnly is on
+    const dOk=!userLL||t.distance==null||t.distance<=maxD||(remoteOnly&&t.isVirtual);
     const pOk=phaseF==='all'||getPNum(t.phase)===phaseF;
-    return dOk&&pOk;
+    const bmOk=!showBookmarksOnly||bookmarks.has(t._dk);
+    return dOk&&pOk&&bmOk;
   });
   if(sortNearest&&userLL)filtered.sort((a,b)=>(a.distance||9999)-(b.distance||9999));
   renderAll();
@@ -684,6 +759,11 @@ function setPhase(v){
   ['all','1','2','3'].forEach(x=>document.getElementById(`chip-${x}`).classList.toggle('active',x===v));
   applyFilters();
 }
+function toggleRemote(){
+  remoteOnly=!remoteOnly;
+  document.getElementById('chip-remote').classList.toggle('active',remoteOnly);
+  applyFilters();
+}
 function toggleSort(){
   sortNearest=!sortNearest;
   document.getElementById('sortLbl').textContent=sortNearest?'Nearest':'Phase';
@@ -691,17 +771,31 @@ function toggleSort(){
   else if(userLL)filtered.sort((a,b)=>(a.distance||9999)-(b.distance||9999));
   renderList();
 }
+function toggleBookmarkFilter(){
+  showBookmarksOnly=!showBookmarksOnly;
+  const btn=document.getElementById('bmFilterBtn');
+  btn.classList.toggle('active',showBookmarksOnly);
+  btn.textContent=showBookmarksOnly?'★ Saved':'☆ Saved';
+  applyFilters();
+}
 
 // ── RENDER ──
 function renderAll(){
   markers.clearLayers();
   showOv('none2');
-  if(!filtered.length){showOv('none');document.getElementById('noneMsg').textContent=phaseF!=='all'?`No Phase ${phaseF} trials within range. Try All Phases.`:'No trials found within this distance. Try increasing the distance range.';setPanel(0);return}
+  if(!filtered.length){
+    showOv('none');
+    const msg=showBookmarksOnly?'No saved trials in current results.'
+      :phaseF!=='all'?`No Phase ${phaseF} trials within range. Try All Phases.`
+      :'No trials found within this distance. Try increasing the range.';
+    document.getElementById('noneMsg').textContent=msg;
+    setPanel(0);return;
+  }
 
   filtered.forEach((t,i)=>{
     if(!t.latlng)return;
     const pn=getPNum(t.phase);
-    const col=pn==='3'?'#F5A623':pn==='4'?'#34C98A':pn==='1'?'#B0BEC5':'#2EC4B6';
+    const col=pn==='3'?'#F5A623':pn==='4'?'#2DDC8D':pn==='1'?'#A8B9C9':'#00BAC8';
     const ic=L.divIcon({
       html:`<div style="position:relative;width:22px;height:22px">
         <div style="position:absolute;inset:0;border:2px solid ${col};border-radius:50%;animation:pulse-ring 2s ease-out infinite"></div>
@@ -713,7 +807,7 @@ function renderAll(){
     mk.bindPopup(`
       <div class="popup-title">${t.title.length>75?t.title.slice(0,75)+'…':t.title}</div>
       <div class="popup-phase">${getPhaseLabel(t.phase)} · ${t.status.replace(/_/g,' ')}</div>
-      <div class="popup-loc">📍 ${t.facility||t.city}, ${t.state}</div>
+      <div class="popup-loc">📍 ${t.facility||t.city}${t.state?', '+t.state:''}</div>
       ${t.distance?`<div style="font-size:11px;color:#F5A623;font-weight:700;margin-bottom:8px">${Math.round(t.distance)} ${distUnit()} away</div>`:''}
       <button class="popup-btn" onclick="showDetail(${i})">View Details & Contact →</button>
     `);
@@ -741,10 +835,12 @@ function renderList(){
   el.innerHTML=filtered.map((t,i)=>{
     const pn=getPNum(t.phase);
     const hasContact=t.contacts&&t.contacts.length>0;
-    return`<div class="card p${pn}" id="c${i}" onclick="cardClick(${i})">
+    const isBm=bookmarks.has(t._dk);
+    const locStr=t.distance&&userLL?Math.round(t.distance)+' '+distUnit():[t.city,t.state,t.country].filter(Boolean).join(', ');
+    return`<div class="card p${pn}${isBm?' bookmarked':''}" id="c${i}" data-dk="${escapeAttr(t._dk)}" onclick="cardClick(${i})">
       <div class="card-head">
         <div class="pbadge b${pn}">${getPhaseLabel(t.phase)}</div>
-        <div class="card-title">${t.title}</div>
+        <div class="card-title">${t.title}${t.isVirtual?'<span class="remote-tag">🌐 Remote</span>':''}</div>
       </div>
       <div class="card-org">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
@@ -756,8 +852,9 @@ function renderList(){
         ${t.locStatus?` · <span style="color:var(--success)">${t.locStatus.replace(/_/g,' ')}</span>`:''}
       </div>
       <div class="card-foot">
-        <span class="dist-tag">${t.distance&&userLL?Math.round(t.distance)+' '+distUnit():[t.city,t.state,t.country].filter(Boolean).join(', ')}</span>
-        <button class="view-btn" onclick="event.stopPropagation();showDetail(${i})">Details ${hasContact?'& Contact':''} →</button>
+        <span class="dist-tag">${locStr}</span>
+        <button class="bm-star${isBm?' on':''}" onclick="event.stopPropagation();toggleBookmark('${escapeAttr(t._dk)}')" title="${isBm?'Remove bookmark':'Save trial'}">${isBm?'★':'☆'}</button>
+        <button class="view-btn" onclick="event.stopPropagation();showDetail(${i})">View ${hasContact?'& Contact':''} →</button>
       </div>
     </div>`;
   }).join('');
@@ -772,72 +869,100 @@ function cardClick(i){
 // ── DETAIL SHEET ──
 function showDetail(i){
   currentDetailIndex=i;
+  detailTab='overview';
+  document.getElementById('tabOverview').classList.add('active');
+  document.getElementById('tabFull').classList.remove('active');
   document.getElementById('dPos').textContent=`${i+1} of ${filtered.length}`;
   document.getElementById('dPrev').disabled=i===0;
   document.getElementById('dNext').disabled=i===filtered.length-1;
   const t=filtered[i];
+  updateDetailBookmarkBtn(t._dk);
+  renderDetailContent(t);
+  document.getElementById('detail').classList.add('open');
+  document.getElementById('dBody').scrollTop=0;
+}
+
+function switchTab(tab){
+  detailTab=tab;
+  document.getElementById('tabOverview').classList.toggle('active',tab==='overview');
+  document.getElementById('tabFull').classList.toggle('active',tab==='full');
+  const t=filtered[currentDetailIndex];
+  if(t){
+    renderDetailContent(t);
+    document.getElementById('dBody').scrollTop=0;
+  }
+}
+
+function renderDetailContent(t){
+  document.getElementById('dBody').innerHTML=detailTab==='overview'?buildOverviewHtml(t):buildFullDetailsHtml(t);
+}
+
+// ── OVERVIEW TAB (patient-friendly summary) ──
+function buildOverviewHtml(t){
   const pn=getPNum(t.phase);
-  const pLabel=getPhaseLabel(t.phase);
   const badgeClass=`b${pn}`;
 
-  // BUILD CONTACTS HTML
-  let contactsHtml='';
-  if(t.contacts&&t.contacts.length){
-    const cItems=t.contacts.map(c=>{
-      const phoneHtml=c.phone?`<a href="tel:${c.phone.replace(/\D/g,'')}" class="contact-btn phone" onclick="if(typeof gtag!=='undefined')gtag('event','contact_trial',{method:'phone',trial_id:'${t.id}',trial_name:${JSON.stringify(t.title)},condition:${JSON.stringify(t.conditions[0]||'')}})">
-        <div class="contact-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.5 10.5a19.79 19.79 0 0 1-3-8.57A2 2 0 0 1 3.48 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.13 6.13l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
-        <div class="contact-btn-text"><span class="contact-btn-label">Tap to call</span><span class="contact-btn-value">${c.phone}</span></div>
-      </a>`:'';
-      const emailHtml=c.email?`<a href="mailto:${c.email}?subject=Interest in Clinical Trial: ${encodeURIComponent(t.title)} (${t.id})&body=${encodeURIComponent(PRESET_MSG(t.title,t.id))}" class="contact-btn email" onclick="if(typeof gtag!=='undefined')gtag('event','contact_trial',{method:'email',trial_id:'${t.id}',trial_name:${JSON.stringify(t.title)},condition:${JSON.stringify(t.conditions[0]||'')}})">
-        <div class="contact-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
-        <div class="contact-btn-text"><span class="contact-btn-label">Tap to email</span><span class="contact-btn-value">${c.email}</span></div>
-      </a>`:'';
-      if(!phoneHtml&&!emailHtml)return'';
-      return`<div class="contact-card">
-        ${c.name?`<div class="contact-name">${c.name}</div>`:''}
-        ${c.role?`<div class="contact-role">${c.role.replace(/_/g,' ')}</div>`:''}
-        <div class="contact-links">${phoneHtml}${emailHtml}</div>
-      </div>`;
-    }).filter(Boolean).join('');
-    if(cItems){
-      contactsHtml=`<div class="d-sec">
-        <div class="d-label">📞 Contact to Enroll</div>
-        ${cItems}
-      </div>`;
-    }
+  // "Who can join" structured box
+  const tags=[];
+  if(t.minAge||t.maxAge){
+    const ageStr=(t.minAge||'Any')+' – '+(t.maxAge||'any');
+    tags.push({lbl:'Age',val:ageStr,cls:''});
+  }
+  if(t.sex){tags.push({lbl:'Sex',val:t.sex==='ALL'||t.sex==='All'?'All sexes':t.sex,cls:''})}
+  if(t.healthyVolunteers!==null&&t.healthyVolunteers!==undefined){
+    tags.push({lbl:'Healthy volunteers',val:t.healthyVolunteers?'Yes':'No',cls:t.healthyVolunteers?'yes':'no'});
   }
 
-  // BUILD ELIGIBILITY HTML
-  let eligHtml='';
+  const whoHtml=tags.length?`<div class="elig-who">
+    <div class="elig-who-title">Who can join</div>
+    <div class="elig-tags">
+      ${tags.map(tg=>`<div class="elig-tag">
+        <span class="elig-tag-lbl">${tg.lbl}</span>
+        <span class="elig-tag-val ${tg.cls}">${tg.val}</span>
+      </div>`).join('')}
+    </div>
+  </div>`:'';
+
+  // Top eligibility criteria (3 each)
   const el=t.eligibility;
+  let eligPreview='';
   if(el&&(el.inc.length||el.exc.length)){
-    const ageSex=[];
-    if(t.minAge||t.maxAge)ageSex.push(`Age: ${t.minAge||'any'}${t.maxAge?' – '+t.maxAge:''}`);
-    if(t.sex&&t.sex!=='ALL')ageSex.push(`Sex: ${t.sex}`);
-
-    const incHtml=el.inc.length?`<div class="elig-block">
-      <div class="elig-head inc">✓ Inclusion Criteria</div>
-      ${el.inc.map(c=>`<div class="elig-item"><div class="elig-dot i"></div><div>${c}</div></div>`).join('')}
+    const top3Inc=el.inc.slice(0,3);
+    const top3Exc=el.exc.slice(0,3);
+    const moreInc=el.inc.length>3?` <span style="color:var(--gray-3);font-size:12px">+${el.inc.length-3} more</span>`:'';
+    const moreExc=el.exc.length>3?` <span style="color:var(--gray-3);font-size:12px">+${el.exc.length-3} more</span>`:'';
+    const incHtml=top3Inc.length?`<div class="elig-block">
+      <div class="elig-head inc">✓ May qualify if${moreInc}</div>
+      ${top3Inc.map(c=>`<div class="elig-item"><div class="elig-dot i"></div><div>${c}</div></div>`).join('')}
     </div>`:'';
-    const excHtml=el.exc.length?`<div class="elig-block">
-      <div class="elig-head exc">✗ Exclusion Criteria</div>
-      ${el.exc.map(c=>`<div class="elig-item"><div class="elig-dot e"></div><div>${c}</div></div>`).join('')}
+    const excHtml=top3Exc.length?`<div class="elig-block">
+      <div class="elig-head exc">✗ May not qualify if${moreExc}</div>
+      ${top3Exc.map(c=>`<div class="elig-item"><div class="elig-dot e"></div><div>${c}</div></div>`).join('')}
     </div>`:'';
-
-    eligHtml=`<div class="d-sec">
-      <div class="d-label">📋 Eligibility Criteria</div>
-      ${ageSex.length?`<div class="meta-row">${ageSex.map(a=>`<span class="meta-pill">${a}</span>`).join('')}</div>`:''}
+    eligPreview=`<div class="d-sec">
+      <div class="d-label">📋 Eligibility at a Glance</div>
+      ${whoHtml}
       ${incHtml}${excHtml}
-      <div style="font-size:11px;color:var(--gray-3);margin-top:8px;line-height:1.5">These are partial criteria. Review the full trial listing for complete eligibility requirements before contacting the research team.</div>
+      <span class="tab-link" onclick="switchTab('full')">→ Full criteria &amp; complete details</span>
+    </div>`;
+  } else if(whoHtml){
+    eligPreview=`<div class="d-sec">
+      <div class="d-label">📋 Eligibility</div>
+      ${whoHtml}
+      <span class="tab-link" onclick="switchTab('full')">→ See Full Details tab for eligibility criteria</span>
     </div>`;
   }
 
-  document.getElementById('dBody').innerHTML=`
+  const contactsHtml=buildContactsHtml(t);
+
+  return`
     <div class="nct-id">${t.id}</div>
     <div class="meta-row">
-      <span class="pbadge ${badgeClass}">${pLabel}</span>
+      <span class="pbadge ${badgeClass}">${getPhaseLabel(t.phase)}</span>
       <span class="meta-pill" style="color:var(--success)">● ${t.status.replace(/_/g,' ')}</span>
       ${t.enrollment?`<span class="meta-pill">👥 ${parseInt(t.enrollment).toLocaleString()} participants</span>`:''}
+      ${t.distance&&userLL?`<span class="meta-pill">📍 ${Math.round(t.distance)} ${distUnit()}</span>`:''}
+      ${t.isVirtual?`<span class="meta-pill" style="color:var(--purple)">🌐 Remote/Virtual option</span>`:''}
     </div>
     <div class="d-title">${t.title}</div>
 
@@ -846,16 +971,82 @@ function showDetail(i){
       <div class="cond-wrap">${t.conditions.map(c=>`<span class="cond-chip">${c}</span>`).join('')}</div>
     </div>`:''}
 
-    <div class="d-sec">
-      <div class="d-label">Sponsor</div>
-      <div class="d-val">${t.sponsor}</div>
-    </div>
+    ${t.summary?`<div class="d-sec">
+      <div class="d-label">About This Study</div>
+      <div class="d-val">${t.summary.slice(0,450)}${t.summary.length>450?'…':''}</div>
+    </div>`:''}
 
     <div class="d-sec">
       <div class="d-label">Location</div>
       <div class="loc-item">
         <div class="loc-name">${t.facility||'Research Site'}</div>
-        <div class="loc-city">${t.city}${t.state?', '+t.state:''}${t.zip?' '+t.zip:''}</div>
+        <div class="loc-city">${t.city}${t.state?', '+t.state:''}${t.country&&t.country!=='United States'?', '+t.country:''}</div>
+        ${t.locStatus?`<div class="loc-status">● ${t.locStatus.replace(/_/g,' ')}</div>`:''}
+        ${t.distance&&userLL?`<div class="loc-dist">${Math.round(t.distance)} ${distUnit()} from your location</div>`:''}
+      </div>
+    </div>
+
+    ${eligPreview}
+
+    ${contactsHtml||`<div class="d-sec">
+      <div class="d-label">📞 Contact</div>
+      <div style="font-size:13px;color:var(--gray-2)">Contact information is listed on the official trial page below.</div>
+    </div>`}
+
+    <a class="d-cta" href="https://clinicaltrials.gov/study/${t.id}" target="_blank" rel="noopener"
+      onclick="if(typeof gtag!=='undefined')gtag('event','view_ctgov',{trial_id:'${t.id}'})">
+      View Full Trial on ClinicalTrials.gov ↗
+    </a>
+    <div class="d-trust">
+      <span class="d-trust-item">🔄 Live data from ClinicalTrials.gov</span>
+      <span class="d-trust-item">🆓 Free · No ads</span>
+    </div>
+    <div class="d-disclaimer">Always consult your physician before enrolling in any clinical trial. Contact buttons pre-fill a message indicating potential interest.</div>
+  `;
+}
+
+// ── FULL DETAILS TAB (complete clinical information, as on ClinicalTrials.gov) ──
+function buildFullDetailsHtml(t){
+  const pn=getPNum(t.phase);
+  const badgeClass=`b${pn}`;
+
+  // Full eligibility text exactly as returned from ClinicalTrials.gov
+  let fullEligHtml='';
+  if(t.eligibility?.raw){
+    fullEligHtml=`<div class="d-sec">
+      <div class="d-label">📋 Full Eligibility Criteria</div>
+      <div style="font-size:11px;color:var(--gray-3);margin-bottom:8px">Reproduced from ClinicalTrials.gov</div>
+      <div class="elig-full">${escapeHtml(t.eligibility.raw)}</div>
+    </div>`;
+  }
+
+  const contactsHtml=buildContactsHtml(t);
+
+  return`
+    <div class="nct-id">${t.id}</div>
+    <div class="meta-row">
+      <span class="pbadge ${badgeClass}">${getPhaseLabel(t.phase)}</span>
+      <span class="meta-pill" style="color:var(--success)">● ${t.status.replace(/_/g,' ')}</span>
+      ${t.enrollment?`<span class="meta-pill">👥 ${parseInt(t.enrollment).toLocaleString()} participants</span>`:''}
+      ${t.isVirtual?`<span class="meta-pill" style="color:var(--purple)">🌐 Remote option</span>`:''}
+    </div>
+    <div class="d-title">${t.title}</div>
+
+    <div class="d-sec">
+      <div class="d-label">Sponsor</div>
+      <div class="d-val">${t.sponsor}</div>
+    </div>
+
+    ${t.conditions.length?`<div class="d-sec">
+      <div class="d-label">Condition(s)</div>
+      <div class="cond-wrap">${t.conditions.map(c=>`<span class="cond-chip">${c}</span>`).join('')}</div>
+    </div>`:''}
+
+    <div class="d-sec">
+      <div class="d-label">Location</div>
+      <div class="loc-item">
+        <div class="loc-name">${t.facility||'Research Site'}</div>
+        <div class="loc-city">${[t.city,t.state,t.zip].filter(Boolean).join(', ')}${t.country&&t.country!=='United States'?', '+t.country:''}</div>
         ${t.locStatus?`<div class="loc-status">● ${t.locStatus.replace(/_/g,' ')}</div>`:''}
         ${t.distance&&userLL?`<div class="loc-dist">${Math.round(t.distance)} ${distUnit()} from your location</div>`:''}
       </div>
@@ -866,32 +1057,144 @@ function showDetail(i){
       <div class="d-val">${t.startDate?'Started: '+t.startDate:''}${t.startDate&&t.endDate?' · ':''}${t.endDate?'Est. completion: '+t.endDate:''}</div>
     </div>`:''}
 
-    ${eligHtml}
+    ${fullEligHtml}
 
     ${contactsHtml||`<div class="d-sec">
       <div class="d-label">📞 Contact</div>
-      <div style="font-size:13px;color:var(--gray-2)">Contact information is listed on the full trial page. Click the button below to view.</div>
+      <div style="font-size:13px;color:var(--gray-2)">Contact information is available on the official trial page.</div>
     </div>`}
 
-    ${t.summary?`<div class="d-sec">
-      <div class="d-label">About This Study</div>
-      <div class="d-val">${t.summary.slice(0,500)}${t.summary.length>500?'…':''}</div>
-    </div>`:''}
-
     <a class="d-cta" href="https://clinicaltrials.gov/study/${t.id}" target="_blank" rel="noopener">
-      View Full Trial on ClinicalTrials.gov ↗
+      View on ClinicalTrials.gov ↗
     </a>
-    <div class="d-disclaimer">Always consult your physician before enrolling in a clinical trial. Contact information pre-fills a message indicating potential interest and possible eligibility.</div>
+    <div class="d-disclaimer">Eligibility criteria reproduced verbatim from ClinicalTrials.gov. This app is for informational purposes only.</div>
   `;
-
-  document.getElementById('detail').classList.add('open');
 }
 
+// ── SHARED HELPERS ──
+function buildContactsHtml(t){
+  if(!t.contacts||!t.contacts.length)return'';
+  const cItems=t.contacts.map(c=>{
+    const phoneHtml=c.phone?`<a href="tel:${c.phone.replace(/\D/g,'')}" class="contact-btn phone"
+      onclick="if(typeof gtag!=='undefined')gtag('event','contact_trial',{method:'phone',trial_id:'${t.id}',trial_name:${JSON.stringify(t.title)},condition:${JSON.stringify(t.conditions[0]||'')}})">
+      <div class="contact-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.5 10.5a19.79 19.79 0 0 1-3-8.57A2 2 0 0 1 3.48 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.13 6.13l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+      <div class="contact-btn-text"><span class="contact-btn-label">Tap to call</span><span class="contact-btn-value">${c.phone}</span></div>
+    </a>`:'';
+    const emailHtml=c.email?`<a href="mailto:${c.email}?subject=Interest in Clinical Trial: ${encodeURIComponent(t.title)} (${t.id})&body=${encodeURIComponent(PRESET_MSG(t.title,t.id))}" class="contact-btn email"
+      onclick="if(typeof gtag!=='undefined')gtag('event','contact_trial',{method:'email',trial_id:'${t.id}',trial_name:${JSON.stringify(t.title)},condition:${JSON.stringify(t.conditions[0]||'')}})">
+      <div class="contact-btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+      <div class="contact-btn-text"><span class="contact-btn-label">Tap to email</span><span class="contact-btn-value">${c.email}</span></div>
+    </a>`:'';
+    if(!phoneHtml&&!emailHtml)return'';
+    return`<div class="contact-card">
+      ${c.name?`<div class="contact-name">${c.name}</div>`:''}
+      ${c.role?`<div class="contact-role">${c.role.replace(/_/g,' ')}</div>`:''}
+      <div class="contact-links">${phoneHtml}${emailHtml}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+  if(!cItems)return'';
+  return`<div class="d-sec">
+    <div class="d-label">📞 Contact to Enroll</div>
+    ${cItems}
+  </div>`;
+}
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeAttr(str){
+  return str.replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+}
+
+// ── BOOKMARKS ──
+function toggleBookmark(dk){
+  if(bookmarks.has(dk))bookmarks.delete(dk);
+  else bookmarks.add(dk);
+  // Update card
+  const card=document.querySelector(`[data-dk="${CSS.escape(dk)}"]`);
+  if(card){
+    card.classList.toggle('bookmarked',bookmarks.has(dk));
+    const star=card.querySelector('.bm-star');
+    if(star){star.classList.toggle('on',bookmarks.has(dk));star.textContent=bookmarks.has(dk)?'★':'☆';}
+  }
+  // Update detail header
+  if(filtered[currentDetailIndex]&&filtered[currentDetailIndex]._dk===dk){
+    updateDetailBookmarkBtn(dk);
+  }
+  showToast(bookmarks.has(dk)?'★ Trial saved':'Trial removed from saved');
+}
+function toggleDetailBookmark(){
+  const t=filtered[currentDetailIndex];
+  if(t)toggleBookmark(t._dk);
+}
+function updateDetailBookmarkBtn(dk){
+  const btn=document.getElementById('dBmBtn');
+  if(!btn)return;
+  const on=bookmarks.has(dk);
+  btn.textContent=on?'★':'☆';
+  btn.classList.toggle('bm-on',on);
+  btn.title=on?'Remove from saved':'Save trial';
+}
+
+// ── SHARE ──
+function shareCurrentTrial(){
+  const t=filtered[currentDetailIndex];
+  if(!t)return;
+  const cond=encodeURIComponent(document.getElementById('sInput').value.trim());
+  const url=window.location.origin+window.location.pathname+'#q='+cond+'&nct='+t.id;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(()=>showToast('🔗 Link copied to clipboard')).catch(()=>fallbackCopy(url));
+  } else {
+    fallbackCopy(url);
+  }
+}
+function fallbackCopy(text){
+  const el=document.createElement('textarea');
+  el.value=text;el.style.position='fixed';el.style.opacity='0';
+  document.body.appendChild(el);el.select();
+  try{document.execCommand('copy');showToast('🔗 Link copied!');}catch(e){showToast('Copy failed — use browser address bar');}
+  document.body.removeChild(el);
+}
+
+// ── TOAST ──
+let _toastTimer;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('on');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('on'),2400);
+}
+
+// ── URL HASH ──
+function updateHash(){
+  const cond=document.getElementById('sInput').value.trim();
+  if(cond)history.replaceState(null,'','#q='+encodeURIComponent(cond));
+}
+async function readHash(){
+  const hash=window.location.hash;
+  if(!hash||hash==='#')return;
+  const params={};
+  hash.slice(1).split('&').forEach(p=>{
+    const eq=p.indexOf('=');
+    if(eq>0){
+      try{params[decodeURIComponent(p.slice(0,eq))]=decodeURIComponent(p.slice(eq+1).replace(/\+/g,' '));}catch(e){}
+    }
+  });
+  if(params.q){
+    document.getElementById('sInput').value=params.q;
+    await doSearch();
+    if(params.nct&&filtered.length){
+      const idx=filtered.findIndex(t=>t.id===params.nct);
+      if(idx>=0)setTimeout(()=>showDetail(idx),300);
+    }
+  }
+}
+
+// ── NAVIGATION ──
 function closeDetail(){document.getElementById('detail').classList.remove('open')}
 
-let returningToList=false;
 function backToResults(){
-  returningToList=true; // block map click from resetting panel
+  returningToList=true;
   closeDetail();
   if(filtered.length>0){
     setPanel(3);
@@ -914,10 +1217,11 @@ function newSearch(){
   document.getElementById('sKeyword').value='';
   document.getElementById('filterRow').style.display='none';
   showOv('empty');
+  history.replaceState(null,'',window.location.pathname);
   setTimeout(()=>document.getElementById('sInput').focus(),300);
 }
 
-let currentDetailIndex=0;
+let currentDetailIndexStore=0;
 function navigateDetail(dir){
   const next=currentDetailIndex+dir;
   if(next>=0&&next<filtered.length)showDetail(next);
@@ -928,7 +1232,7 @@ const pStates=['','peek','half','full'];
 function setPanel(s){panelSt=s;const p=document.getElementById('panel');p.className='panel '+(pStates[s]||'')}
 function cyclePanel(){setPanel(panelSt<3?panelSt+1:1)}
 
-// ── STATE ──
+// ── OVERLAYS ──
 function showOv(which){
   document.getElementById('ovEmpty').classList.remove('on');
   document.getElementById('ovLoad').classList.remove('on');
@@ -939,26 +1243,25 @@ function showOv(which){
 }
 
 // ── DISCLAIMER ──
-function showDisclaimer(force){
-  document.getElementById('discBackdrop').classList.remove('hidden');
-}
-function closeDisclaimer(){
-  document.getElementById('discBackdrop').classList.add('hidden');
-}
+function showDisclaimer(){document.getElementById('discBackdrop').classList.remove('hidden')}
+function closeDisclaimer(){document.getElementById('discBackdrop').classList.add('hidden')}
 function acceptDisclaimer(){
   try{localStorage.setItem('ctf_disclaimer_accepted','1')}catch(e){}
   closeDisclaimer();
 }
 
-// Show on first visit; skip if already accepted
+// ── INIT ──
+initMap();
+getUserLocation();
+
 (function(){
   let accepted=false;
   try{accepted=localStorage.getItem('ctf_disclaimer_accepted')==='1'}catch(e){}
   if(!accepted)showDisclaimer();
 })();
 
-initMap();
-getUserLocation();
+// Auto-search from URL hash (after map ready)
+setTimeout(readHash, 400);
 </script>
 </body>
 </html>
