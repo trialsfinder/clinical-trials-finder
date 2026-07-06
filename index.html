@@ -251,7 +251,7 @@
       <option value="100">100 mi</option>
       <option value="250">250 mi</option>
       <option value="500">500 mi</option>
-      <option value="99999">Nationwide</option>
+      <option value="99999">No distance limit</option>
     </select>
   </div>
 </div>
@@ -384,12 +384,19 @@ function initMap() {
 
 function getUserLocation() {
   if(!navigator.geolocation)return;
-  navigator.geolocation.getCurrentPosition(pos=>{
+  navigator.geolocation.getCurrentPosition(async pos=>{
     userLL=[pos.coords.latitude,pos.coords.longitude];
     if(userMarker)map.removeLayer(userMarker);
     const ic=L.divIcon({html:`<div style="width:14px;height:14px;background:#2EC4B6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(46,196,182,.25)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:''});
     userMarker=L.marker(userLL,{icon:ic}).addTo(map).bindPopup('<div style="font-size:12px;color:#2EC4B6;font-weight:700">📍 Your Location</div>');
     map.setView(userLL,9);
+    // Detect country for metric/imperial switch
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userLL[0]}&lon=${userLL[1]}&format=json`,{headers:{'Accept-Language':'en','User-Agent':'ClinicalTrialsFinder/1.0'}});
+      const d=await r.json();
+      const country=d?.address?.country||'';
+      if(country)setMetricFromCountry(country);
+    }catch(e){}
   },()=>{
     // Location denied or unavailable — app works fine without it, no alert needed
   });
@@ -408,13 +415,13 @@ function pickSugg(v){document.getElementById('sInput').value=v;document.getEleme
 document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))document.getElementById('sugg').style.display='none'});
 
 // ── GEOCODE ──
-async function geocode(city,state) {
-  const key=`${city}|${state}`;
+async function geocode(city,state,country) {
+  const key=`${city}|${state}|${country}`;
   if(GEO_CACHE[key])return GEO_CACHE[key];
   try{
-    // Try with zip first if available, then city+state
-    const q=encodeURIComponent(`${city}, ${state}, USA`);
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=us`,{headers:{'Accept-Language':'en','User-Agent':'ClinicalTrialsFinder/1.0'}});
+    const parts=[city,state,country].filter(Boolean);
+    const q=encodeURIComponent(parts.join(', '));
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,{headers:{'Accept-Language':'en','User-Agent':'ClinicalTrialsFinder/1.0'}});
     const d=await r.json();
     if(d&&d[0]){const c=[parseFloat(d[0].lat),parseFloat(d[0].lon)];GEO_CACHE[key]=c;return c}
   }catch(e){}
@@ -422,10 +429,31 @@ async function geocode(city,state) {
 }
 
 // ── DISTANCE ──
+let useMetric=false;
+let userCountry='';
 function haversine(a,b){
-  const R=3958.8,dLat=(b[0]-a[0])*Math.PI/180,dLon=(b[1]-a[1])*Math.PI/180;
+  const R=useMetric?6371:3958.8;
+  const dLat=(b[0]-a[0])*Math.PI/180,dLon=(b[1]-a[1])*Math.PI/180;
   const x=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLon/2)**2;
   return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function distUnit(){return useMetric?'km':'mi'}
+function setMetricFromCountry(country){
+  // Only US uses miles by default; UK uses miles on roads too
+  const milesCountries=['United States','United Kingdom'];
+  useMetric=!milesCountries.includes(country);
+  userCountry=country;
+  updateDistDropdown();
+}
+function updateDistDropdown(){
+  const u=distUnit();
+  const sel=document.getElementById('distSel');
+  if(!sel)return;
+  const vals=useMetric
+    ?[[10,'10 '+u],[25,'25 '+u],[50,'50 '+u],[100,'100 '+u],[250,'250 '+u],[500,'500 '+u],[99999,'No distance limit']]
+    :[[5,'5 '+u],[10,'10 '+u],[25,'25 '+u],[50,'50 '+u],[100,'100 '+u],[250,'250 '+u],[500,'500 '+u],[99999,'No distance limit']];
+  const cur=sel.value;
+  sel.innerHTML=vals.map(([v,l])=>`<option value="${v}"${String(v)===cur?' selected':''}>${l}</option>`).join('');
 }
 
 // ── PARSE ELIGIBILITY ──
@@ -525,7 +553,7 @@ async function doSearch() {
       return;
     }
 
-    // Extract trials with US locations
+    // Extract trials — all countries
     const raw=[];
     for(const study of allStudies){
       const m=study.protocolSection;
@@ -542,40 +570,33 @@ async function doSearch() {
       const endDate=m.statusModule?.primaryCompletionDateStruct?.date||'';
       const conditions=m.conditionsModule?.conditions||[];
 
-      // KEY FIX #4: Correctly extract eligibility from eligibilityModule
       const eligRaw=m.eligibilityModule?.eligibilityCriteria||'';
       const eligibility=parseEligibility(eligRaw);
       const sex=m.eligibilityModule?.sex||'';
       const minAge=m.eligibilityModule?.minimumAge||'';
       const maxAge=m.eligibilityModule?.maximumAge||'';
 
-      // KEY FIX #5: Correctly extract central contacts
       const clm=m.contactsLocationsModule||{};
       const centralContacts=(clm.centralContacts||[]).map(c=>({
         name:c.name||'',phone:c.phone||'',email:c.email||'',role:c.role||''
       }));
 
-      // KEY FIX #6: Correctly extract per-location contacts
       const locs=clm.locations||[];
       for(const loc of locs){
-        if(loc.country!=='United States')continue;
         const locContacts=(loc.contacts||[]).map(c=>({
           name:c.name||'',phone:c.phone||'',email:c.email||'',role:c.role||''
         }));
-        // Merge: site contacts first, fall back to central contacts
         const contacts=[...locContacts,...centralContacts].filter(c=>c.phone||c.email);
-        // Deduplicate by name
         const seen=new Set();
         const uniqContacts=contacts.filter(c=>{if(seen.has(c.name))return false;seen.add(c.name);return true});
 
-        // Pull coordinates directly from API geoPoint — no geocoding needed for these
         const gLat=loc.geoPoint?.lat;
         const gLon=loc.geoPoint?.lon;
         raw.push({
           id,title,phase,sponsor,status,summary,enrollment,
           startDate,endDate,conditions,eligibility,sex,minAge,maxAge,
           contacts:uniqContacts,
-          city:loc.city||'',state:loc.state||'',
+          city:loc.city||'',state:loc.state||'',country:loc.country||'',
           facility:loc.facility||'',
           locStatus:loc.status||'',
           zip:loc.zip||'',
@@ -587,27 +608,27 @@ async function doSearch() {
 
     if(!raw.length){
       showOv('none');
-      document.getElementById('noneMsg').textContent=`Trials found for "${cond}" but none have US location data.`;
+      document.getElementById('noneMsg').textContent=`Trials found for "${cond}" but none have mappable location data.`;
       return;
     }
 
     // Only geocode the small fraction of locations missing geoPoint (<10% typically)
-    const needGeo=raw.filter(t=>!t.latlng&&t.city&&t.state);
+    const needGeo=raw.filter(t=>!t.latlng&&t.city);
     const uniq={};
-    for(const t of needGeo){const k=`${t.city}|${t.state}`;if(!(k in uniq))uniq[k]=null}
+    for(const t of needGeo){const k=`${t.city}|${t.state}|${t.country}`;if(!(k in uniq))uniq[k]=null}
     const keys=Object.keys(uniq);
 
     if(keys.length){
       document.getElementById('loadMsg').textContent=`Geocoding ${keys.length} remaining locations…`;
-      const POOL=5; // 5 concurrent — ~20× faster than sequential 1/sec
+      const POOL=5;
       for(let i=0;i<keys.length;i+=POOL){
         const batch=keys.slice(i,i+POOL);
-        const results=await Promise.all(batch.map(k=>{const[city,state]=k.split('|');return geocode(city,state)}));
+        const results=await Promise.all(batch.map(k=>{const[city,state,country]=k.split('|');return geocode(city,state,country)}));
         batch.forEach((k,j)=>{uniq[k]=results[j]});
         document.getElementById('loadMsg').textContent=`Geocoding locations… ${Math.min(i+POOL,keys.length)}/${keys.length}`;
         if(i+POOL<keys.length)await new Promise(r=>setTimeout(r,250));
       }
-      for(const t of needGeo){const k=`${t.city}|${t.state}`;t.latlng=uniq[k]||null}
+      for(const t of needGeo){const k=`${t.city}|${t.state}|${t.country}`;t.latlng=uniq[k]||null}
     }
 
     // Assign distances + deduplicate
@@ -688,7 +709,7 @@ function renderAll(){
       <div class="popup-title">${t.title.length>75?t.title.slice(0,75)+'…':t.title}</div>
       <div class="popup-phase">${getPhaseLabel(t.phase)} · ${t.status.replace(/_/g,' ')}</div>
       <div class="popup-loc">📍 ${t.facility||t.city}, ${t.state}</div>
-      ${t.distance?`<div style="font-size:11px;color:#F5A623;font-weight:700;margin-bottom:8px">${Math.round(t.distance)} mi away</div>`:''}
+      ${t.distance?`<div style="font-size:11px;color:#F5A623;font-weight:700;margin-bottom:8px">${Math.round(t.distance)} ${distUnit()} away</div>`:''}
       <button class="popup-btn" onclick="showDetail(${i})">View Details & Contact →</button>
     `);
     mk.on('click',()=>{
@@ -730,7 +751,7 @@ function renderList(){
         ${t.locStatus?` · <span style="color:var(--success)">${t.locStatus.replace(/_/g,' ')}</span>`:''}
       </div>
       <div class="card-foot">
-        <span class="dist-tag">${t.distance&&userLL?Math.round(t.distance)+' mi':t.city+', '+t.state}</span>
+        <span class="dist-tag">${t.distance&&userLL?Math.round(t.distance)+' '+distUnit():[t.city,t.state,t.country].filter(Boolean).join(', ')}</span>
         <button class="view-btn" onclick="event.stopPropagation();showDetail(${i})">Details ${hasContact?'& Contact':''} →</button>
       </div>
     </div>`;
@@ -831,7 +852,7 @@ function showDetail(i){
         <div class="loc-name">${t.facility||'Research Site'}</div>
         <div class="loc-city">${t.city}${t.state?', '+t.state:''}${t.zip?' '+t.zip:''}</div>
         ${t.locStatus?`<div class="loc-status">● ${t.locStatus.replace(/_/g,' ')}</div>`:''}
-        ${t.distance&&userLL?`<div class="loc-dist">${Math.round(t.distance)} miles from your location</div>`:''}
+        ${t.distance&&userLL?`<div class="loc-dist">${Math.round(t.distance)} ${distUnit()} from your location</div>`:''}
       </div>
     </div>
 
