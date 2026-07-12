@@ -612,7 +612,7 @@ async function doSearch() {
     do {
       const hvSearch=/healthy\s*(volunteer|control|participant|subject)s?/i.test(cond);
       let url=hvSearch
-        ?`https://clinicaltrials.gov/api/v2/studies?filter.overallStatus=RECRUITING,ENROLLING_BY_INVITATION&filter.eligibility.healthyVolunteers=true&pageSize=200&format=json`
+        ?`https://clinicaltrials.gov/api/v2/studies?aggFilters=healthyVols:y&filter.overallStatus=RECRUITING,ENROLLING_BY_INVITATION&pageSize=200&format=json`
         :`https://clinicaltrials.gov/api/v2/studies?query.cond=${encodeURIComponent(cond)}&filter.overallStatus=RECRUITING,ENROLLING_BY_INVITATION&pageSize=200&format=json`;
       if(keyword)url+=`&query.term=${encodeURIComponent(keyword)}`;
       if(nextToken)url+=`&pageToken=${nextToken}`;
