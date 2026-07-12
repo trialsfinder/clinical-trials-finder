@@ -124,7 +124,7 @@
   .d-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
   .d-icon-btn{width:34px;height:34px;background:rgba(255,255,255,.07);border:none;border-radius:9px;color:var(--gray-2);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color .15s,background .15s;flex-shrink:0}
   .d-icon-btn.bm-on{color:var(--amber);background:rgba(245,166,35,.12)}
-  .d-home{background:none;border:none;color:var(--gray-3);font-size:18px;cursor:pointer;padding:6px;display:flex;align-items:center}
+  .d-home{background:rgba(0,186,200,.12);border:1px solid rgba(0,186,200,.25);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:5px;white-space:nowrap}
   .d-close{width:34px;height:34px;min-width:34px;background:rgba(255,255,255,.08);border:none;border-radius:50%;color:var(--white);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .d-nav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
   .d-nav-btn{background:rgba(255,255,255,.08);border:none;color:var(--white);font-size:13px;font-weight:600;padding:8px 16px;border-radius:var(--rs);cursor:pointer;min-height:36px}
@@ -271,7 +271,7 @@
   <div class="search-row">
     <div class="search-wrap">
       <svg class="s-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="sInput" class="s-input" type="text" placeholder="Condition — Parkinson, diabetes, lupus, breast cancer…"
+      <input id="sInput" class="s-input" type="text" placeholder="Condition or healthy volunteer — Parkinson's, diabetes, lupus…"
         autocomplete="off" autocorrect="off" spellcheck="false"
         onkeydown="if(event.key==='Enter'){doSearch();this.blur()}"
         oninput="onInput(this.value)"/>
@@ -364,7 +364,10 @@
           <button class="d-icon-btn" onclick="event.stopPropagation();shareCurrentTrial()" title="Share this trial">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           </button>
-          <button class="d-home" onclick="event.stopPropagation();newSearch()" title="New search">⌂</button>
+          <button class="d-home" onclick="event.stopPropagation();newSearch()" title="New search">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            New Search
+          </button>
           <button class="d-close" onclick="event.stopPropagation();closeDetail()">✕</button>
         </div>
       </div>
@@ -436,7 +439,8 @@ const PRESET_MSG = (trialTitle, nctId) =>
   `Dear Research Team,\n\nI am writing to express my interest in participating in the following clinical trial:\n\n"${trialTitle}" (${nctId})\n\nAfter reviewing the currently listed inclusion and exclusion criteria, I believe I may qualify for this study. I would appreciate the opportunity to learn more about the enrollment process and next steps.\n\nThank you for your time and consideration.\n\nSincerely,\n[Your Name]\n[Your Phone Number]`;
 
 const SUGGESTIONS = [
-  "Parkinson disease","Alzheimer disease","Multiple sclerosis","ALS (amyotrophic lateral sclerosis)","Essential tremor",
+  "Healthy volunteer","Healthy control",
+  "Parkinson disease","Parkinson's disease","Alzheimer disease","Multiple sclerosis","ALS (amyotrophic lateral sclerosis)","Essential tremor",
   "Huntington disease","Myasthenia gravis","Peripheral neuropathy","Epilepsy","Migraine",
   "Type 1 diabetes","Type 2 diabetes","Obesity","Metabolic syndrome",
   "Breast cancer","Lung cancer","Prostate cancer","Ovarian cancer","Colorectal cancer","Melanoma","Lymphoma","Leukemia","Glioblastoma",
@@ -446,6 +450,27 @@ const SUGGESTIONS = [
   "Asthma","COPD","Pulmonary fibrosis",
   "Chronic kidney disease","HIV","Hepatitis C","COVID-19 long haul","Fibromyalgia","Osteoporosis"
 ];
+
+// ── DID YOU MEAN ──
+function levenshtein(a,b){
+  const m=a.length,n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+function didYouMean(input){
+  const lower=input.toLowerCase();
+  let best=null,bestScore=Infinity;
+  for(const s of SUGGESTIONS){
+    const score=levenshtein(lower,s.toLowerCase());
+    if(score<bestScore&&score<=4&&score>0){bestScore=score;best=s}
+    // also check first word
+    const firstWord=s.toLowerCase().split(' ')[0];
+    const scoreW=levenshtein(lower.split(' ')[0],firstWord);
+    if(scoreW<bestScore&&scoreW<=3&&scoreW>0){bestScore=scoreW;best=s}
+  }
+  return best;
+}
 
 // ── MAP ──
 function initMap() {
@@ -585,7 +610,10 @@ async function doSearch() {
     document.getElementById('loadMsg').textContent='Fetching trials from ClinicalTrials.gov…';
 
     do {
-      let url=`https://clinicaltrials.gov/api/v2/studies?query.cond=${encodeURIComponent(cond)}&filter.overallStatus=RECRUITING,ENROLLING_BY_INVITATION&pageSize=200&format=json`;
+      const hvSearch=/healthy\s*(volunteer|control|participant|subject)s?/i.test(cond);
+      let url=hvSearch
+        ?`https://clinicaltrials.gov/api/v2/studies?filter.overallStatus=RECRUITING,ENROLLING_BY_INVITATION&filter.eligibility.healthyVolunteers=true&pageSize=200&format=json`
+        :`https://clinicaltrials.gov/api/v2/studies?query.cond=${encodeURIComponent(cond)}&filter.overallStatus=RECRUITING,ENROLLING_BY_INVITATION&pageSize=200&format=json`;
       if(keyword)url+=`&query.term=${encodeURIComponent(keyword)}`;
       if(nextToken)url+=`&pageToken=${nextToken}`;
 
@@ -602,11 +630,15 @@ async function doSearch() {
 
     if(!allStudies.length){
       showOv('none');
-      document.getElementById('noneMsg').textContent=`No actively recruiting trials found for "${cond}". Try an alternate spelling or broader term.`;
+      const sug=didYouMean(cond);
+      const sugHtml=sug?` Did you mean <span style="color:var(--amber);cursor:pointer;text-decoration:underline" onclick="document.getElementById('sInput').value='${sug.replace(/'/g,"\\'")}';doSearch()">${sug}</span>?`:'';
+      document.getElementById('noneMsg').innerHTML=`No actively recruiting trials found for "<b>${cond}</b>".${sugHtml} Try an alternate spelling or broader term.`;
       return;
     }
 
-    if(!keyword){
+    const isHVSearch=/healthy\s*(volunteer|control|participant|subject)s?/i.test(cond);
+
+    if(!keyword&&!isHVSearch){
       const condWords=cond.toLowerCase().split(/\s+/).filter(w=>w.length>2);
       allStudies=allStudies.filter(study=>{
         const m=study.protocolSection;
@@ -621,7 +653,9 @@ async function doSearch() {
 
     if(!allStudies.length){
       showOv('none');
-      document.getElementById('noneMsg').textContent=`No relevant trials found for "${cond}". Try an alternate spelling or broader term.`;
+      const sug=didYouMean(cond);
+      const sugHtml=sug?` Did you mean <span style="color:var(--amber);cursor:pointer;text-decoration:underline" onclick="document.getElementById('sInput').value='${sug.replace(/'/g,"\\'")}';doSearch()">${sug}</span>?`:'';
+      document.getElementById('noneMsg').innerHTML=`No relevant trials found for "<b>${cond}</b>".${sugHtml} Try an alternate spelling or broader term.`;
       return;
     }
 
