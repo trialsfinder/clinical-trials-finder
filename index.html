@@ -52,6 +52,9 @@
   .filter-row{display:flex;gap:8px;align-items:center;padding:10px 16px 0;overflow-x:auto;scrollbar-width:none}
   .filter-row::-webkit-scrollbar{display:none}
   .d-sel{background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:20px;color:var(--white);font-size:12px;padding:5px 10px;outline:none;cursor:pointer;-webkit-appearance:none}
+  .zip-input{background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:20px;color:var(--white);font-size:12px;padding:5px 10px;outline:none;width:76px;text-align:center;-webkit-appearance:none;transition:border-color .2s}
+  .zip-input::placeholder{color:var(--gray-3)}
+  .zip-input.active{border-color:var(--amber);color:var(--amber)}
   .chip{padding:5px 12px;background:var(--navy-mid);border:1px solid rgba(255,255,255,.1);border-radius:20px;font-size:12px;color:var(--gray-2);cursor:pointer;white-space:nowrap;transition:all .15s}
   .chip.active{background:rgba(245,166,35,.15);border-color:var(--amber);color:var(--amber)}
   .chip.remote-chip.active{background:var(--purple-soft);border-color:var(--purple);color:var(--purple)}
@@ -310,6 +313,11 @@
       <option value="500">500 mi</option>
       <option value="99999">No limit</option>
     </select>
+    <input id="zipInput" class="zip-input" type="text" inputmode="numeric" maxlength="5"
+      placeholder="ZIP" title="Search from a specific ZIP code"
+      oninput="this.classList.toggle('active',this.value.length>0)"
+      onkeydown="if(event.key==='Enter'){applyZip();this.blur()}"
+      onblur="if(this.value.length>=5)applyZip();else if(this.value.length===0)clearZip()"/>
   </div>
 </div>
 
@@ -461,7 +469,7 @@
 
 <script>
 // ── STATE ──
-let map, markers, userMarker, userLL = null;
+let map, markers, userMarker, userLL = null, gpsLL = null;
 let allTrials = [], filtered = [], phaseF = 'all', sortNearest = true;
 let panelSt = 0;
 let detailTab = 'overview';
@@ -597,7 +605,7 @@ function initMap() {
 function getUserLocation() {
   if(!navigator.geolocation)return;
   navigator.geolocation.getCurrentPosition(async pos=>{
-    userLL=[pos.coords.latitude,pos.coords.longitude];
+    userLL=[pos.coords.latitude,pos.coords.longitude];gpsLL=userLL;
     if(userMarker)map.removeLayer(userMarker);
     const ic=L.divIcon({html:`<div style="width:14px;height:14px;background:#00BAC8;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(0,186,200,.25)"></div>`,iconSize:[14,14],iconAnchor:[7,7],className:''});
     userMarker=L.marker(userLL,{icon:ic}).addTo(map).bindPopup('<div style="font-size:12px;color:#00BAC8;font-weight:700">📍 Your Location</div>');
@@ -861,6 +869,34 @@ function applyFilters(){
   });
   if(sortNearest&&userLL)filtered.sort((a,b)=>(a.distance||9999)-(b.distance||9999));
   renderAll();
+}
+
+function recalcDistances(){
+  if(!userLL)return;
+  allTrials.forEach(t=>{if(t.latlng)t.distance=haversine(userLL,t.latlng);});
+}
+async function applyZip(){
+  const zip=document.getElementById('zipInput').value.trim();
+  if(!zip||zip.length<5){clearZip();return;}
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zip)}&country=us&format=json&limit=1`,{headers:{'User-Agent':'TrialsNearMe/1.0'}});
+    const d=await r.json();
+    if(!d.length){showToast('ZIP code not found — please check and try again');return;}
+    userLL=[parseFloat(d[0].lat),parseFloat(d[0].lon)];
+    if(userMarker)userMarker.remove();
+    const ic=L.divIcon({className:'',html:'<div style="font-size:20px;line-height:1;filter:drop-shadow(0 1px 4px rgba(0,0,0,.6))">📍</div>',iconAnchor:[10,20]});
+    userMarker=L.marker(userLL,{icon:ic}).addTo(map).bindPopup(`<div style="font-size:12px;color:#F5A623;font-weight:700">📍 ZIP ${zip}</div>`);
+    map.setView(userLL,9);
+    recalcDistances();
+    applyFilters();
+    showToast('📍 Searching near ZIP '+zip);
+  }catch(e){showToast('Could not look up ZIP — check your connection');}
+}
+function clearZip(){
+  userLL=gpsLL;
+  const zi=document.getElementById('zipInput');
+  if(zi){zi.value='';zi.classList.remove('active');}
+  if(userLL){recalcDistances();applyFilters();}
 }
 
 function getPNum(p){
